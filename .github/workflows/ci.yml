@@ -45,3 +45,6 @@ jobs:
         with:
           name: Gemcutter
           path: .release/*.zip
+          # .release er en skjult mappe, og den hopper upload-artifact over som standard
+          include-hidden-files: true
+          if-no-files-found: error
