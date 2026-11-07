@@ -40,7 +40,7 @@ jobs:
           cat CHANGELOG.md
 
       - name: Package and release
-        uses: BigWigsMods/packager@v2
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}

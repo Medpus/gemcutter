@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Holder SHA-låste actions oppdatert
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

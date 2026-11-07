@@ -37,7 +37,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y subversion
 
       - name: Package without upload
-        uses: BigWigsMods/packager@v2
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
         with:
           args: -d
 
