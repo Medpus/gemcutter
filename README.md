@@ -59,15 +59,15 @@ the WoW API and plays 400 moves with mouse input and animations.
 
 ```sh
 scripts/fetch-libs.sh     # LibStub, CallbackHandler, LibDataBroker and LibDBIcon into Gemcutter/Libs
-luajit tests/run.lua
-luajit tests/ui_smoke.lua
+scripts/check.sh          # tests, Lua 5.1 parse check, no goto
 ```
 
 For local play, symlink `Gemcutter/` into the Forever `Interface/AddOns` folder after fetching the
 libraries.
 
-Releases are built by the BigWigs packager on GitHub Actions when a `v*` tag is pushed. Add a
-section for the version to `CHANGELOG.md` first.
+Releases are built by the BigWigs packager on GitHub Actions when a `v*` tag is pushed. That is the
+only workflow; run `scripts/check.sh` locally and add a section for the version to `CHANGELOG.md`
+first.
 
 The gems on the board are the game's own item icons and the sounds are the game's own. The addon
 icon is original art (`assets/icon.svg`). Licensed under MIT.

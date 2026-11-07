@@ -11,8 +11,11 @@
 - `tests/wow_mock.lua` er streng: ukjente metoder med stor forbokstav og ukjente globaler gir feil.
   Når du tar i bruk et nytt WoW-API, legg det til i mocken bare hvis du vet at det finnes i
   den moderne klienten.
-- Kjør `luajit tests/run.lua` og `luajit tests/ui_smoke.lua` før commit. LuaJIT godtar `goto`, men WoW
-  gjør det ikke, så addonfilene må holde seg til Lua 5.1.
+- Kjør `scripts/check.sh` før commit og før release (tester, parse-sjekk og goto-sjekk). LuaJIT
+  godtar `goto`, men WoW gjør det ikke, så addonfilene må holde seg til Lua 5.1.
+- Hold GitHub Actions-bruken minimal. Alt som kan kjøres lokalt, kjøres lokalt. Den eneste
+  workflowen er release ved `v*`-tagg, fordi pakking med externals og opplasting med secrets må
+  skje der. Ikke legg til CI ved hver push, Dependabot eller tester i release-jobben.
 - Bibliotekene (LibStub, CallbackHandler, LibDataBroker, LibDBIcon) er ikke i git. `.pkgmeta`
   henter dem som externals ved release; `scripts/fetch-libs.sh` henter de samme filene lokalt.
   Røyktesten bruker `tests/fake_libs.lua` i stedet for de ekte bibliotekene.
@@ -21,6 +24,7 @@
   fordi ImageMagick setter bunn-origo i headeren men skriver radene ovenfra (bildet blir opp ned).
 - Release: legg til `## vX.Y.Z` i `CHANGELOG.md`, push taggen `vX.Y.Z`. GitHub Actions kjører
   BigWigs-packageren, som gjenkjenner `16001` som Forever. CurseForge-opplasting krever
-  `## X-Curse-Project-ID` i TOC-en og secret `CF_API_KEY`.
-- CI bygger zip-filen ved hver push (packager med `-d`) og laster den opp som artefakt. Packageren
-  skriver til den skjulte mappen `.release/`, så `upload-artifact` trenger `include-hidden-files`.
+  `## X-Curse-Project-ID` i TOC-en og secret `CF_API_KEY`. Packageren er låst til en commit-SHA
+  fordi den får CurseForge-nøkkelen; oppdater låsen for hånd ved behov.
+- Packageren skriver zip-filen til den skjulte mappen `.release/`. Skal den lastes opp som
+  artefakt, trenger `upload-artifact` `include-hidden-files: true`.
