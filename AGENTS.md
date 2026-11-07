@@ -22,3 +22,5 @@
 - Release: legg til `## vX.Y.Z` i `CHANGELOG.md`, push taggen `vX.Y.Z`. GitHub Actions kjører
   BigWigs-packageren, som gjenkjenner `16001` som Forever. CurseForge-opplasting krever
   `## X-Curse-Project-ID` i TOC-en og secret `CF_API_KEY`.
+- CI bygger zip-filen ved hver push (packager med `-d`) og laster den opp som artefakt. Packageren
+  skriver til den skjulte mappen `.release/`, så `upload-artifact` trenger `include-hidden-files`.
