@@ -1,4 +1,4 @@
--- Streng mock av den delen av WoW-API-et GemFlight bruker.
+-- Streng mock av den delen av WoW-API-et Gemcutter bruker.
 -- Ukjente metoder (stor forbokstav) og ukjente globaler gir feil, så skrivefeil blir fanget.
 
 local M = {}
@@ -284,10 +284,10 @@ end
 
 -- Globaler som addonet har lov til å lage
 M.allowedGlobals = {
-    GemFlightDB = true, SLASH_GEMFLIGHT1 = true, SLASH_GEMFLIGHT2 = true,
-    GemFlightFrame = true, GemFlightMinimapButton = true,
-    GemFlight_OnAddonCompartmentClick = true, GemFlight_OnAddonCompartmentEnter = true,
-    GemFlight_OnAddonCompartmentLeave = true,
+    GemcutterDB = true, SLASH_GEMCUTTER1 = true, SLASH_GEMCUTTER2 = true,
+    GemcutterFrame = true, GemcutterMinimapButton = true,
+    Gemcutter_OnAddonCompartmentClick = true, Gemcutter_OnAddonCompartmentEnter = true,
+    Gemcutter_OnAddonCompartmentLeave = true,
 }
 
 -- Globaler som er nil i et vanlig WoW-oppsett, men som addonet sjekker for

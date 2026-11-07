@@ -1,7 +1,7 @@
 -- Kjøres fra repo-roten: luajit tests/run.lua
 local ns = {}
-assert(loadfile("GemFlight/Core.lua"))("GemFlight", ns)
-assert(loadfile("GemFlight/Progression.lua"))("GemFlight", ns)
+assert(loadfile("Gemcutter/Core.lua"))("Gemcutter", ns)
+assert(loadfile("Gemcutter/Progression.lua"))("Gemcutter", ns)
 local Core, Prog = ns.Core, ns.Progression
 
 local passed, failed = 0, 0

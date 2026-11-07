@@ -2,7 +2,7 @@
 -- og spiller hundrevis av trekk med ekte musehendelser og animasjonstikk.
 -- Kjør fra repo-roten: luajit tests/ui_smoke.lua
 
-local ADDON = "GemFlight"
+local ADDON = "Gemcutter"
 local passed, failed = 0, 0
 local require_frames
 
@@ -29,7 +29,7 @@ local function bootstrap(savedDB)
     for k in pairs(require("tests.wow_mock").allowedGlobals) do rawset(_G, k, nil) end
     local M = dofile("tests/wow_mock.lua")
     M.Install()
-    rawset(_G, "GemFlightDB", savedDB)
+    rawset(_G, "GemcutterDB", savedDB)
     M.Lockdown()
     local ns = {}
     for _, file in ipairs(tocFiles()) do
@@ -110,13 +110,13 @@ end
 local M, ns = bootstrap(nil)
 require_frames = M.frames
 
-check(type(GemFlightDB) == "table", "GemFlightDB created")
+check(type(GemcutterDB) == "table", "GemcutterDB created")
 check(ns.board and ns.db and ns.db.profile.level == 1, "board and profile initialised")
-local frame = GemFlightFrame
+local frame = GemcutterFrame
 check(frame ~= nil and not frame._shown, "main frame exists and starts hidden")
-check(UISpecialFrames[1] == "GemFlightFrame", "Escape closes the frame")
+check(UISpecialFrames[1] == "GemcutterFrame", "Escape closes the frame")
 
-SlashCmdList.GEMFLIGHT("")
+SlashCmdList.GEMCUTTER("")
 check(frame._shown, "slash command opens the frame")
 
 local board = findFrame(M, function(f) return f._clips end)
@@ -172,7 +172,7 @@ for i = 1, 400 do
         check(not frame._shown, "combat hides the frame")
         combatHides = combatHides + 1
         M.Tick(0.05)
-        SlashCmdList.GEMFLIGHT("")
+        SlashCmdList.GEMCUTTER("")
     end
     check(settle(M, board), "animation finishes (move " .. i .. ")")
     M.FinishAnimations()
@@ -225,8 +225,8 @@ check(board._parent._shown, "board back after closing progress panel")
 -- Nytt brett
 local newButton = findFrame(M, function(f) return f._text == "New board" end)
 newButton._scripts.OnClick(newButton)
-check(M.popups[#M.popups] == "GEMFLIGHT_NEW_BOARD", "new board asks for confirmation")
-StaticPopupDialogs.GEMFLIGHT_NEW_BOARD.OnAccept()
+check(M.popups[#M.popups] == "GEMCUTTER_NEW_BOARD", "new board asks for confirmation")
+StaticPopupDialogs.GEMCUTTER_NEW_BOARD.OnAccept()
 check(ns.board.moves == 0 and ns.board.score == 0, "fresh board after confirm")
 check(ns.db.profile.stats.boards == 1, "boards stat counted")
 ok, err = boardMatchesState(board, ns)
@@ -243,7 +243,7 @@ ok, err = boardMatchesState(board, ns)
 check(ok, "board correct after replacing mid-animation: " .. tostring(err))
 
 -- Minimapknapp
-local mm = GemFlightMinimapButton
+local mm = GemcutterMinimapButton
 check(mm ~= nil and mm._shown, "minimap button shown")
 mm._scripts.OnClick(mm, "LeftButton")
 check(not frame._shown, "minimap click closes the board")
@@ -254,9 +254,9 @@ mm._scripts.OnDragStart(mm)
 M.Tick(0.05)
 mm._scripts.OnDragStop(mm)
 check(math.abs(ns.db.minimap.angle - 90) < 0.01, "dragging stores minimap angle (" .. ns.db.minimap.angle .. ")")
-SlashCmdList.GEMFLIGHT("minimap")
+SlashCmdList.GEMCUTTER("minimap")
 check(not mm._shown and ns.db.minimap.hide, "slash command hides minimap button")
-SlashCmdList.GEMFLIGHT("minimap")
+SlashCmdList.GEMCUTTER("minimap")
 check(mm._shown, "slash command shows minimap button again")
 
 -- Flytte vinduet lagrer posisjonen i DB
@@ -267,11 +267,11 @@ frame._scripts.OnDragStop(frame)
 check(ns.db.window.point == "TOPLEFT" and ns.db.window.x == 40 and ns.db.window.y == -60, "window position saved")
 
 -- Andre slash-kommandoer
-SlashCmdList.GEMFLIGHT("scale 1.25")
+SlashCmdList.GEMCUTTER("scale 1.25")
 check(ns.db.window.scale == 1.25, "scale stored")
-SlashCmdList.GEMFLIGHT("scale 9")
+SlashCmdList.GEMCUTTER("scale 9")
 check(ns.db.window.scale == 1.25, "invalid scale ignored")
-SlashCmdList.GEMFLIGHT("sound")
+SlashCmdList.GEMCUTTER("sound")
 check(ns.db.sound == false, "sound toggled off")
 local soundsBefore = M.sounds
 r1, c1, r2, c2 = Core.FindHint(ns.board)
@@ -279,27 +279,27 @@ mouse(M, board, "OnMouseDown", r1, c1)
 mouse(M, board, "OnMouseUp", r2, c2)
 settle(M, board)
 check(M.sounds == soundsBefore, "no sound while muted")
-SlashCmdList.GEMFLIGHT("sound")
-SlashCmdList.GEMFLIGHT("help")
+SlashCmdList.GEMCUTTER("sound")
+SlashCmdList.GEMCUTTER("help")
 
 -- Addon-kompartement
-GemFlight_OnAddonCompartmentClick()
+Gemcutter_OnAddonCompartmentClick()
 check(not frame._shown, "compartment click toggles the board")
-GemFlight_OnAddonCompartmentEnter(ADDON, mm)
-GemFlight_OnAddonCompartmentLeave()
+Gemcutter_OnAddonCompartmentEnter(ADDON, mm)
+Gemcutter_OnAddonCompartmentLeave()
 
 -- Lagring ved utlogging
 local savedProfile = ns.db.profile
 local levelBefore = savedProfile.level
 M.Fire("PLAYER_LOGOUT")
-check(type(GemFlightDB.board) == "table", "board saved at logout")
+check(type(GemcutterDB.board) == "table", "board saved at logout")
 local savedBoard = Core.Serialize(ns.board)
 
 ------------------------------------------------------------------------
 -- Ny økt med lagrede data
 ------------------------------------------------------------------------
 
-local saved = GemFlightDB
+local saved = GemcutterDB
 local M2, ns2 = bootstrap(saved)
 require_frames = M2.frames
 check(ns2.db.profile.level == levelBefore, "level survives reload")
@@ -312,8 +312,8 @@ local M3, ns3 = bootstrap({ board = { v = 1, cells = "garbage" }, profile = { le
 check(ns3.board ~= nil and ns3.db.profile.level == 1, "corrupt saved data recovers")
 
 -- Nullstilling
-SlashCmdList.GEMFLIGHT("reset")
-StaticPopupDialogs.GEMFLIGHT_RESET_PROGRESS.OnAccept()
+SlashCmdList.GEMCUTTER("reset")
+StaticPopupDialogs.GEMCUTTER_RESET_PROGRESS.OnAccept()
 check(ns3.db.profile.level == 1 and ns3.db.profile.totalXP == 0, "reset clears progress")
 
 print(("ui_smoke: %d passed, %d failed"):format(passed, failed))

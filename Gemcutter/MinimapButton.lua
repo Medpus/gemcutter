@@ -68,7 +68,7 @@ end
 
 function MinimapButton.Create()
     if button then return end
-    button = CreateFrame("Button", "GemFlightMinimapButton", Minimap)
+    button = CreateFrame("Button", "GemcutterMinimapButton", Minimap)
     button:SetSize(31, 31)
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel(8)

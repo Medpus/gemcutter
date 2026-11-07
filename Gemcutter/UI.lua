@@ -51,7 +51,7 @@ local hintFrames = {}
 local displayedScore = 0
 
 function ns.Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cffffd100GemFlight:|r " .. msg)
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffd100Gemcutter:|r " .. msg)
 end
 
 local function PlaySFX(name)
@@ -839,7 +839,7 @@ end
 -- Vindu
 ----------------------------------------------------------------------
 
-StaticPopupDialogs["GEMFLIGHT_NEW_BOARD"] = {
+StaticPopupDialogs["GEMCUTTER_NEW_BOARD"] = {
     text = "Start a new board?\nYour board score resets. Level, XP and achievements are kept.",
     button1 = "New board",
     button2 = CANCEL,
@@ -858,7 +858,7 @@ end
 
 function UI.AddProgressTooltipLines(tooltip)
     local p = ns.db.profile
-    tooltip:AddLine("GemFlight")
+    tooltip:AddLine("Gemcutter")
     tooltip:AddLine(("Level %d  %s"):format(p.level, Progression.Rank(p.level)), 1, 1, 1)
     if p.level < Progression.MAX_LEVEL then
         tooltip:AddLine(("%s / %s XP"):format(Fmt(p.xp), Fmt(Progression.XPToNext(p.level))), 0.8, 0.8, 0.8)
@@ -869,7 +869,7 @@ end
 
 function UI.Create()
     if frame then return end
-    frame = CreateFrame("Frame", "GemFlightFrame", UIParent, "BackdropTemplate")
+    frame = CreateFrame("Frame", "GemcutterFrame", UIParent, "BackdropTemplate")
     frame:SetSize(FRAME_W, FRAME_H)
     frame:SetFrameStrata("MEDIUM")
     frame:SetToplevel(true)
@@ -898,7 +898,7 @@ function UI.Create()
         frame:SetPoint("CENTER", UIParent, "CENTER", 260, 40)
     end
     frame:Hide()
-    tinsert(UISpecialFrames, "GemFlightFrame")
+    tinsert(UISpecialFrames, "GemcutterFrame")
 
     local header = frame:CreateTexture(nil, "ARTWORK")
     header:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
@@ -906,7 +906,7 @@ function UI.Create()
     header:SetPoint("TOP", 0, 12)
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOP", header, "TOP", 0, -12)
-    title:SetText("GemFlight")
+    title:SetText("Gemcutter")
 
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -5, -5)
@@ -978,7 +978,7 @@ function UI.Create()
     newButton:SetText("New board")
     newButton:SetScript("OnClick", function()
         if ns.board.moves > 0 then
-            StaticPopup_Show("GEMFLIGHT_NEW_BOARD")
+            StaticPopup_Show("GEMCUTTER_NEW_BOARD")
         else
             ns.NewBoard()
         end

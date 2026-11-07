@@ -1,6 +1,6 @@
 local addonName, ns = ...
 
--- Ren spill-logikk for GemFlight. Ingen WoW-globaler her.
+-- Ren spill-logikk for Gemcutter. Ingen WoW-globaler her.
 local Core = {}
 ns.Core = Core
 

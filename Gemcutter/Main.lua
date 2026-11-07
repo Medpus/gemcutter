@@ -6,8 +6,8 @@ function ns.NewSeed()
 end
 
 local function InitDB()
-    if type(GemFlightDB) ~= "table" then GemFlightDB = {} end
-    local db = GemFlightDB
+    if type(GemcutterDB) ~= "table" then GemcutterDB = {} end
+    local db = GemcutterDB
 
     if type(db.profile) ~= "table" then db.profile = Progression.NewProfile() end
     db.profile = Progression.Upgrade(db.profile)
@@ -55,8 +55,8 @@ function ns.ResetProgress()
     ns.Print("All progress has been reset.")
 end
 
-StaticPopupDialogs["GEMFLIGHT_RESET_PROGRESS"] = {
-    text = "Reset all GemFlight progress?\nYour level, XP, stats and achievements will be lost.",
+StaticPopupDialogs["GEMCUTTER_RESET_PROGRESS"] = {
+    text = "Reset all Gemcutter progress?\nYour level, XP, stats and achievements will be lost.",
     button1 = "Reset",
     button2 = CANCEL,
     OnAccept = function() ns.ResetProgress() end,
@@ -68,16 +68,16 @@ StaticPopupDialogs["GEMFLIGHT_RESET_PROGRESS"] = {
 
 local function PrintHelp()
     ns.Print("Commands:")
-    ns.Print("/gemflight - open or close the board")
-    ns.Print("/gemflight minimap - show or hide the minimap button")
-    ns.Print("/gemflight scale <0.5-2> - window size")
-    ns.Print("/gemflight sound - turn sound on or off")
-    ns.Print("/gemflight reset - erase all progress")
+    ns.Print("/gemcutter - open or close the board")
+    ns.Print("/gemcutter minimap - show or hide the minimap button")
+    ns.Print("/gemcutter scale <0.5-2> - window size")
+    ns.Print("/gemcutter sound - turn sound on or off")
+    ns.Print("/gemcutter reset - erase all progress")
 end
 
-SLASH_GEMFLIGHT1 = "/gemflight"
-SLASH_GEMFLIGHT2 = "/gf"
-SlashCmdList.GEMFLIGHT = function(msg)
+SLASH_GEMCUTTER1 = "/gemcutter"
+SLASH_GEMCUTTER2 = "/gc"
+SlashCmdList.GEMCUTTER = function(msg)
     local cmd, arg = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
     cmd = (cmd or ""):lower()
     if cmd == "" then
@@ -86,7 +86,7 @@ SlashCmdList.GEMFLIGHT = function(msg)
         if ns.MinimapButton.Toggle() then
             ns.Print("Minimap button shown.")
         else
-            ns.Print("Minimap button hidden. Type /gemflight minimap to bring it back.")
+            ns.Print("Minimap button hidden. Type /gemcutter minimap to bring it back.")
         end
     elseif cmd == "scale" then
         local n = tonumber(arg)
@@ -94,28 +94,28 @@ SlashCmdList.GEMFLIGHT = function(msg)
             ns.UI.SetScale(n)
             ns.Print(("Window scale set to %.2f."):format(n))
         else
-            ns.Print(("Usage: /gemflight scale 0.5-2 (now %.2f)"):format(ns.db.window.scale))
+            ns.Print(("Usage: /gemcutter scale 0.5-2 (now %.2f)"):format(ns.db.window.scale))
         end
     elseif cmd == "sound" then
         ns.db.sound = not ns.db.sound
         ns.Print(ns.db.sound and "Sound on." or "Sound off.")
     elseif cmd == "reset" then
-        StaticPopup_Show("GEMFLIGHT_RESET_PROGRESS")
+        StaticPopup_Show("GEMCUTTER_RESET_PROGRESS")
     else
         PrintHelp()
     end
 end
 
 -- Addon compartment (addon-menyen ved minimap), satt opp i TOC-filen
-function GemFlight_OnAddonCompartmentClick()
+function Gemcutter_OnAddonCompartmentClick()
     ns.UI.Toggle()
 end
 
-function GemFlight_OnAddonCompartmentEnter(_, menuButton)
+function Gemcutter_OnAddonCompartmentEnter(_, menuButton)
     ns.MinimapButton.ShowTooltip(menuButton)
 end
 
-function GemFlight_OnAddonCompartmentLeave()
+function Gemcutter_OnAddonCompartmentLeave()
     GameTooltip:Hide()
 end
 

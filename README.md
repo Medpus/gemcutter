@@ -1,4 +1,4 @@
-# GemFlight
+# Gemcutter
 
 Et avslappet match-3-spill for World of Warcraft: Forever, laget for lange flight paths. Du åpner
 brettet fra minimap-knappen, bytter steiner til du lander og lukker det igjen. Brettet lagres, så du
@@ -6,10 +6,10 @@ fortsetter der du slapp på neste flytur. Alt du spiller gir XP til en kontobred
 
 ## Installering
 
-Addonet ligger i `GemFlight/`. Kopier eller symlink mappen til Forever-installasjonen:
+Addonet ligger i `Gemcutter/`. Kopier eller symlink mappen til Forever-installasjonen:
 
 ```sh
-ln -s "$PWD/GemFlight" ".../World of Warcraft/_forever_/Interface/AddOns/GemFlight"
+ln -s "$PWD/Gemcutter" ".../World of Warcraft/_forever_/Interface/AddOns/Gemcutter"
 ```
 
 Start spillet på nytt eller skriv `/reload` hvis du allerede er inne.
@@ -21,14 +21,14 @@ Start spillet på nytt eller skriv `/reload` hvis du allerede er inne.
 - Esc lukker vinduet. Vinduet lukkes også når du går i kamp eller får en ready check.
 - Etter åtte sekunder uten trekk pulserer et mulig trekk.
 
-Kommandoer: `/gemflight` (eller `/gf`) åpner og lukker brettet.
+Kommandoer: `/gemcutter` (eller `/gc`) åpner og lukker brettet.
 
 | Kommando | Virkning |
 |---|---|
-| `/gemflight minimap` | skjuler eller viser minimap-knappen |
-| `/gemflight scale 0.5-2` | endrer størrelsen på vinduet |
-| `/gemflight sound` | slår lyd av eller på |
-| `/gemflight reset` | sletter all progresjon (spør først) |
+| `/gemcutter minimap` | skjuler eller viser minimap-knappen |
+| `/gemcutter scale 0.5-2` | endrer størrelsen på vinduet |
+| `/gemcutter sound` | slår lyd av eller på |
+| `/gemcutter reset` | sletter all progresjon (spør først) |
 
 ## Regler
 
