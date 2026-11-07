@@ -880,6 +880,8 @@ function UI.Create()
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
+        -- Vi lagrer posisjonen selv, så WoW skal ikke også gjøre det i layout-local.txt
+        self:SetUserPlaced(false)
         SavePosition()
     end)
     frame:SetBackdrop({

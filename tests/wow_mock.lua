@@ -113,7 +113,7 @@ local frameImpl = setmetatable({
 
 local FRAME = REGION .. " SetScript GetScript HookScript CreateTexture CreateFontString RegisterEvent UnregisterEvent"
     .. " SetFrameStrata SetFrameLevel GetFrameLevel SetToplevel SetClampedToScreen SetMovable EnableMouse RegisterForDrag"
-    .. " StartMoving StopMovingOrSizing GetEffectiveScale SetScale GetLeft GetTop GetCenter SetClipsChildren"
+    .. " StartMoving StopMovingOrSizing SetUserPlaced GetEffectiveScale SetScale GetLeft GetTop GetCenter SetClipsChildren"
 local BUTTON = FRAME .. " RegisterForClicks SetHighlightTexture LockHighlight UnlockHighlight SetText GetText Enable Disable"
 local STATUSBAR = FRAME .. " SetStatusBarTexture SetStatusBarColor SetMinMaxValues SetValue"
 local BACKDROP = " SetBackdrop SetBackdropColor SetBackdropBorderColor"

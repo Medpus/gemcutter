@@ -259,6 +259,13 @@ check(not mm._shown and ns.db.minimap.hide, "slash command hides minimap button"
 SlashCmdList.GEMFLIGHT("minimap")
 check(mm._shown, "slash command shows minimap button again")
 
+-- Flytte vinduet lagrer posisjonen i DB
+frame._scripts.OnDragStart(frame, "LeftButton")
+frame:ClearAllPoints()
+frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 40, -60)
+frame._scripts.OnDragStop(frame)
+check(ns.db.window.point == "TOPLEFT" and ns.db.window.x == 40 and ns.db.window.y == -60, "window position saved")
+
 -- Andre slash-kommandoer
 SlashCmdList.GEMFLIGHT("scale 1.25")
 check(ns.db.window.scale == 1.25, "scale stored")
