@@ -3,7 +3,7 @@ name: CI
 # Tester og bygger zip-filen ved hver push, uten å laste opp noe.
 on:
   push:
-    branches: ["**"]
+    branches: [master]
   pull_request:
 
 jobs:

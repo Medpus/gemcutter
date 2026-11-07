@@ -12,7 +12,16 @@ local DBIcon
 function MinimapButton.AddTooltipLines(tooltip)
     ns.UI.AddProgressTooltipLines(tooltip)
     tooltip:AddLine(" ")
-    tooltip:AddLine("Click to open or close the board.", 0.8, 0.8, 0.8)
+    tooltip:AddLine("Left-click: open or close the board", 0.8, 0.8, 0.8)
+    tooltip:AddLine("Right-click: your progress and achievements", 0.8, 0.8, 0.8)
+end
+
+function MinimapButton.OnClick(button)
+    if button == "RightButton" then
+        ns.UI.ToggleProgress()
+    else
+        ns.UI.Toggle()
+    end
 end
 
 -- Brukes av addon-menyen ved minimap (TOC: AddonCompartmentFuncOnEnter)
@@ -29,7 +38,7 @@ function MinimapButton.Create()
         type = "launcher",
         label = addonName,
         icon = MinimapButton.ICON,
-        OnClick = function() ns.UI.Toggle() end,
+        OnClick = function(_, button) MinimapButton.OnClick(button) end,
         OnTooltipShow = function(tooltip) MinimapButton.AddTooltipLines(tooltip) end,
     })
     DBIcon:Register(addonName, launcher, ns.db.minimap)

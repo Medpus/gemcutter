@@ -10,7 +10,8 @@ you clear earns XP toward an account-wide level.
 ## Playing
 
 - Open and close the board with the minimap button, the addon menu next to the minimap, or
-  `/gemcutter` (short: `/gc`).
+  `/gemcutter` (short: `/gc`). Right-click the minimap button to see your progress and
+  achievements.
 - Drag a gem onto a neighbour, or click two neighbouring gems, to swap them.
 - Three or more of the same colour in a row or column are cleared. New gems fall in, and every
   cascade raises the multiplier.

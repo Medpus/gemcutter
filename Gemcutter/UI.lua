@@ -1474,9 +1474,25 @@ end
 function UI.Show() if frame then frame:Show() end end
 function UI.Hide() if frame then frame:Hide() end end
 
+-- Venstreklikk: brettet. Høyreklikk: fremdriftspanelet. Et nytt klikk på det som vises, lukker.
 function UI.Toggle()
     if not frame then return end
-    frame:SetShown(not frame:IsShown())
+    if frame:IsShown() then
+        frame:Hide()
+        return
+    end
+    if progressPanel:IsShown() then SetProgressShown(false) end
+    frame:Show()
+end
+
+function UI.ToggleProgress()
+    if not frame then return end
+    if frame:IsShown() and progressPanel:IsShown() then
+        frame:Hide()
+        return
+    end
+    frame:Show()
+    SetProgressShown(true)
 end
 
 function UI.SetScale(scale)

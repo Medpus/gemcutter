@@ -12,4 +12,5 @@ First release for World of Warcraft: Forever.
   stats panel.
 - Drag gems or click two neighbours to swap. Gems follow the cursor while you drag.
 - Minimap button built on LibDBIcon, so minimap button collectors and broker bars can manage it.
+- Right-click the minimap button to open the progress panel.
 - The window closes on combat and ready checks.

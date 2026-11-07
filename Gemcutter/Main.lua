@@ -108,8 +108,8 @@ SlashCmdList.GEMCUTTER = function(msg)
 end
 
 -- Addon compartment (addon-menyen ved minimap), satt opp i TOC-filen
-function Gemcutter_OnAddonCompartmentClick()
-    ns.UI.Toggle()
+function Gemcutter_OnAddonCompartmentClick(_, buttonName)
+    ns.MinimapButton.OnClick(buttonName)
 end
 
 function Gemcutter_OnAddonCompartmentEnter(_, menuButton)
