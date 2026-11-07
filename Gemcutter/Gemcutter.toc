@@ -9,6 +9,7 @@
 ## AddonCompartmentFuncOnEnter: Gemcutter_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: Gemcutter_OnAddonCompartmentLeave
 ## X-License: MIT
+## X-Curse-Project-ID: 1789227
 ## X-Website: https://github.com/Medpus/gemcutter
 
 Libs\LibStub\LibStub.lua
