@@ -5,7 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-magick -background none -density 768 assets/icon.svg -resize 64x64 -depth 8 rgba:"$tmp/icon.rgba"
+# Spillikonet får gjennomsiktig bakgrunn: fjern flaten og snittlinjen
+grep -v 'id="bg"\|id="cutline"' assets/icon.svg > "$tmp/icon.svg"
+magick -background none -density 768 "$tmp/icon.svg" -resize 64x64 -depth 8 rgba:"$tmp/icon.rgba"
 python3 -I - "$tmp/icon.rgba" Gemcutter/Media/Icon.tga <<'PY'
 import struct, sys
 src, dst = sys.argv[1], sys.argv[2]

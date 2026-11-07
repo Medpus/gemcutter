@@ -20,8 +20,10 @@
   henter dem som externals ved release; `scripts/fetch-libs.sh` henter de samme filene lokalt.
   Røyktesten bruker `tests/fake_libs.lua` i stedet for de ekte bibliotekene.
 - Minimapknappen må gå via LibDBIcon. Leatrix Plus og andre knappesamlere avviser egne knapper.
-- Ikonet tegnes i `assets/icon.svg` og bygges med `scripts/make-icon.sh`. TGA-en skrives for hånd,
-  fordi ImageMagick setter bunn-origo i headeren men skriver radene ovenfra (bildet blir opp ned).
+- Ikonet er en kuttet rubin i flate fasetter, tegnet i `assets/icon.svg`. `scripts/make-icon.sh` lager
+  CurseForge-logoen (med bakgrunn) og spillikonet (uten `bg` og `cutline`, gjennomsiktig). TGA-en
+  skrives for hånd, fordi ImageMagick setter bunn-origo i headeren men skriver radene ovenfra.
+  Unngå glans-ellipser, gnister og rutenett av steiner; det så AI-generert ut.
 - Release: legg til `## vX.Y.Z` i `CHANGELOG.md`, push taggen `vX.Y.Z`. GitHub Actions kjører
   BigWigs-packageren, som gjenkjenner `16001` som Forever. CurseForge-opplasting krever
   `## X-Curse-Project-ID` i TOC-en og secret `CF_API_KEY`. Packageren er låst til en commit-SHA
