@@ -1,10 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Gemcutter: en briljantslipt rubin i profil, kuttet diagonalt. Flate fasetter,
-       lys fra øvre venstre. make-icon.sh fjerner linjene merket bg/cutline når spillikonet
-       lages, så det får gjennomsiktig bakgrunn. -->
+  <!-- Gemcutter: en briljantslipt rubin i profil, kuttet langs linjen x = 47 - 0.375y.
+       Høyre bit flyttes 2.6 langs normalen (jevn spalte) og 1.2 oppover langs snittet.
+       Snittlinjen i bakgrunnen ligger i samme koordinatsystem, midt i spalten.
+       make-icon.sh fjerner linjene merket bg/cutline for spillikonet (gjennomsiktig). -->
   <defs>
-    <clipPath id="left"><polygon points="0,0 47,0 23,64 0,64"/></clipPath>
-    <clipPath id="right"><polygon points="47,0 64,0 64,64 23,64"/></clipPath>
+    <clipPath id="left"><polygon points="-20,-20 54.5,-20 15.5,84 -20,84"/></clipPath>
+    <clipPath id="right"><polygon points="54.5,-20 84,-20 84,84 15.5,84"/></clipPath>
+    <clipPath id="sil"><polygon points="23,12 41,12 53,22 32,54 11,22"/></clipPath>
     <g id="gem">
       <!-- silhuett med smal mørk kant -->
       <polygon points="23,12 41,12 53,22 32,54 11,22" fill="#2c0712" stroke="#2c0712" stroke-width="1.6" stroke-linejoin="round"/>
@@ -25,15 +27,23 @@
       <polygon points="39,22 47,22 32,54" fill="#7a142e"/>
       <polygon points="47,22 53,22 32,54" fill="#560c22"/>
     </g>
+    <!-- mørk kant langs kuttflaten, bare inne i steinen -->
+    <line id="cutedge" x1="54.5" y1="-20" x2="15.5" y2="84" stroke="#2c0712" stroke-width="1.6" clip-path="url(#sil)"/>
   </defs>
 
   <rect id="bg" width="64" height="64" fill="#11272a"/>
-  <line id="cutline" x1="47" y1="0" x2="23" y2="64" stroke="#f2c2b4" stroke-opacity="0.14" stroke-width="0.45"/>
 
   <g transform="translate(32 34) scale(0.92) translate(-32 -32) rotate(-8 32 33)">
-    <use href="#gem" clip-path="url(#left)"/>
-    <g transform="translate(2.4,-1.8) rotate(3 47 22)">
-      <use href="#gem" clip-path="url(#right)"/>
+    <line id="cutline" x1="69.2" y1="-55.5" x2="12.95" y2="94.5" stroke="#f2c2b4" stroke-opacity="0.16" stroke-width="0.5"/>
+    <g clip-path="url(#left)">
+      <use href="#gem"/>
+      <use href="#cutedge"/>
+    </g>
+    <g transform="translate(2.855 -0.211)">
+      <g clip-path="url(#right)">
+        <use href="#gem"/>
+        <use href="#cutedge"/>
+      </g>
     </g>
   </g>
 </svg>
