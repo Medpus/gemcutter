@@ -1,7 +1,8 @@
 # Gemcutter
 
-A relaxed match-3 game for World of Warcraft: Forever. Click the minimap button, swap gems for a
-while, close it again. It was made for long flight paths, but it works anywhere outside combat.
+A relaxed match-3 game for World of Warcraft: Forever. You open it from the minimap button, swap
+gems until you feel like stopping and close it again. It was made for long flight paths, but it
+works anywhere outside combat.
 
 The board never ends and is saved between sessions, so you pick up where you left off. Everything
 you clear earns XP toward an account-wide level.
@@ -23,16 +24,16 @@ Special gems:
 - Five in a row makes a prism. Swap it with any gem to clear every gem of that colour. Two prisms
   clear the board.
 
-When no moves are left, the board reshuffles. **New board** starts over and only resets the board
-score.
+When no moves are left, the board reshuffles. The New board button starts over and only resets the
+board score.
 
 ## Progression
 
 Progress belongs to your account, not to one character. Every move earns XP based on its score.
 There are 60 levels with a new rank title every ten, from Novice Gemcutter to Grand Master
-Gemcutter, plus 18 achievements with XP rewards. The **Progress** panel shows your stats: best
-move, longest chain, gems cleared and how many flights you have played on. Level 10 takes about
-half an hour; level 60 takes many evenings.
+Gemcutter, plus 18 achievements with XP rewards. The Progress panel shows your stats: best move,
+longest chain, gems cleared and how many flights you have played on. In a simulated casual pace of
+ten moves a minute, level 10 took about half an hour and level 60 about 16 hours.
 
 ## Commands
 
