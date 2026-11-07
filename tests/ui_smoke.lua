@@ -184,6 +184,84 @@ for i = 1, 400 do
         break
     end
 end
+-- Dra som følger musen: gem + nabo flytter seg med pekeren, maks én rute
+do
+    local function cursorAt(lx, ly)
+        M.cursorX, M.cursorY = board._left + lx, board._top - ly
+    end
+    local function gemAt(r, c)
+        for _, f in ipairs(M.frames) do
+            if f._parent == board and f._shown and f.icon then
+                local _, _, _, x, y = f:GetPoint()
+                if math.abs(x - (c - 1) * 36) < 0.01 and math.abs(-y - (r - 1) * 36) < 0.01 then return f end
+            end
+        end
+    end
+    local function offsetOf(f, r, c)
+        local _, _, _, x, y = f:GetPoint()
+        return x - (c - 1) * 36, -y - (r - 1) * 36
+    end
+
+    local hr1, hc1, hr2, hc2 = Core.FindHint(ns.board)
+    local dr, dc = hr2 - hr1, hc2 - hc1
+    local sx, sy = (hc1 - 0.5) * 36, (hr1 - 0.5) * 36
+    local ga, gb = gemAt(hr1, hc1), gemAt(hr2, hc2)
+    check(ga ~= nil and gb ~= nil, "drag test finds both gem frames")
+
+    -- Under 4 px er fortsatt et klikk: ingenting flytter seg
+    M.mouseDown = true
+    cursorAt(sx, sy)
+    board._scripts.OnMouseDown(board, "LeftButton")
+    cursorAt(sx + dc * 3, sy + dr * 3)
+    M.Tick(0.016)
+    local ox, oy = offsetOf(ga, hr1, hc1)
+    check(ox == 0 and oy == 0, "movement under 4 px does not drag")
+
+    -- Gem følger pekeren, naboen går motsatt vei
+    cursorAt(sx + dc * 10, sy + dr * 10)
+    M.Tick(0.016)
+    ox, oy = offsetOf(ga, hr1, hc1)
+    check(math.abs(ox - dc * 10) < 0.01 and math.abs(oy - dr * 10) < 0.01, "dragged gem follows the cursor")
+    ox, oy = offsetOf(gb, hr2, hc2)
+    check(math.abs(ox + dc * 10) < 0.01 and math.abs(oy + dr * 10) < 0.01, "neighbour moves the opposite way")
+
+    -- Aldri mer enn én rute, også når pekeren går langt forbi
+    cursorAt(sx + dc * 90, sy + dr * 90)
+    M.Tick(0.016)
+    ox, oy = offsetOf(ga, hr1, hc1)
+    check(math.abs(ox - dc * 36) < 0.01 and math.abs(oy - dr * 36) < 0.01, "drag is clamped to one cell")
+
+    -- Slipper under terskelen: ingenting skjer, gem fjærer tilbake
+    local movesBefore, scoreBefore2 = ns.board.moves, ns.board.score
+    cursorAt(sx + dc * 8, sy + dr * 8)
+    M.Tick(0.016)
+    M.mouseDown = false
+    board._scripts.OnMouseUp(board, "LeftButton")
+    check(settle(M, board), "spring-back finishes")
+    M.FinishAnimations()
+    check(ns.board.moves == movesBefore and ns.board.score == scoreBefore2, "release under threshold changes nothing")
+    ox, oy = offsetOf(ga, hr1, hc1)
+    check(ox == 0 and oy == 0, "gem is back in place after spring-back")
+    ok, err = boardMatchesState(board, ns)
+    check(ok, "board intact after spring-back: " .. tostring(err))
+
+    -- Slipper forbi terskelen utenfor brettet: byttet gjennomføres
+    M.mouseDown = true
+    cursorAt(sx, sy)
+    board._scripts.OnMouseDown(board, "LeftButton")
+    cursorAt(sx + dc * 20, sy + dr * 20)
+    M.Tick(0.016)
+    ox, oy = offsetOf(ga, hr1, hc1)
+    check(math.abs(ox - dc * 20) < 0.01 and math.abs(oy - dr * 20) < 0.01, "second drag follows the cursor")
+    M.mouseDown = false
+    M.Tick(0.016)
+    check(ns.board.moves == movesBefore + 1, "release past threshold commits the swap")
+    check(settle(M, board), "committed drag finishes")
+    M.FinishAnimations()
+    ok, err = boardMatchesState(board, ns)
+    check(ok, "board correct after drag commit: " .. tostring(err))
+end
+
 check(moves > 300, "most moves scored (" .. moves .. ")")
 check(invalids > 10, "invalid swaps exercised (" .. invalids .. ")")
 check(combatHides > 10, "combat hide exercised")

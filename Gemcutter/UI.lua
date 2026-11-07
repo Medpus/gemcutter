@@ -26,6 +26,21 @@ local GEM_ICONS = {
 }
 local PRISM_ICON = "Interface\\Icons\\INV_Enchant_ShardPrismaticLarge"
 local XP_COLOR = { 0.58, 0.0, 0.55 }
+-- Gnistfarger per steinfarge (indeks = Core-farge), prismet får egen
+local GEM_COLORS = {
+    { 1, 0.25, 0.25 }, { 1, 0.6, 0.15 }, { 1, 0.9, 0.25 }, { 0.3, 1, 0.4 },
+    { 0.35, 0.6, 1 }, { 0.75, 0.45, 1 }, { 1, 1, 1 },
+}
+local PRISM_COLOR = { 0.8, 0.9, 1 }
+
+local SWAP_TIME = 0.16
+local SWAP_GROW = 0.1
+local COMMIT = 0.35
+local CLICK_PX = 4
+local SEL_SCALE = 1.1
+local SHAKE_TIME = 0.15
+local SCORE_TIME = 0.35
+local BAR_TIME = 0.6
 
 local SOUNDS = {
     select = { "IG_MAINMENU_OPTION_CHECKBOX_ON" },
@@ -45,10 +60,15 @@ local frame, board, overlay, progressPanel
 local hud = {}
 local gemFrames, gemPool = {}, {}
 local busy = false
-local selR, selC, downR, downC
+local selR, selC
 local hintTimer
 local hintFrames = {}
-local displayedScore = 0
+local scoreTarget, scoreShown, scoreFrom, scoreT, scoreActive = 0, 0, 0, 0, false
+local shownText
+local barLevel, barValue, barTargetLevel, barTargetXP, barActive
+local hoverGem, tracker, trackerOn, hovering
+local downR, downC, downX, downY
+local dragging, dragAmt, dragNR, dragNC, dragGa, dragGb
 
 function ns.Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cffffd100Gemcutter:|r " .. msg)
@@ -68,6 +88,16 @@ end
 
 local function EaseOut(k) return 1 - (1 - k) * (1 - k) end
 local function EaseIn(k) return k * k end
+local function EaseInOut(k)
+    if k < 0.5 then return 2 * k * k end
+    return 1 - 2 * (1 - k) * (1 - k)
+end
+
+-- Lange kjeder går fortere: 10 % kortere per kjedetrinn fra kjede 3, ned til 70 %
+local function Pace(chain)
+    if chain < 3 then return 1 end
+    return math.max(0.7, 1 - 0.1 * (chain - 2))
+end
 
 ----------------------------------------------------------------------
 -- Animasjonskø: faser kjøres etter hverandre i én OnUpdate på brettet
@@ -109,6 +139,10 @@ end
 
 local function RunPhases(done)
     busy = true
+    if hoverGem then
+        hoverGem.hover:Hide()
+        hoverGem = nil
+    end
     onPhasesDone = done
     phaseIndex = 1
     board:SetScript("OnUpdate", PhaseOnUpdate)
@@ -135,6 +169,7 @@ end
 local function CreateGemFrame()
     local g = CreateFrame("Frame", nil, board)
     g:SetSize(CELL, CELL)
+    g.baseLevel = g:GetFrameLevel()
 
     g.icon = g:CreateTexture(nil, "ARTWORK")
     g.icon:SetPoint("CENTER")
@@ -174,6 +209,28 @@ local function CreateGemFrame()
     g.sel:SetSize(GEM + 2, GEM + 2)
     g.sel:SetPoint("CENTER")
     g.sel:Hide()
+    g.selPulse = g.sel:CreateAnimationGroup()
+    g.selPulse:SetLooping("BOUNCE")
+    local sp = g.selPulse:CreateAnimation("Alpha")
+    sp:SetFromAlpha(1)
+    sp:SetToAlpha(0.4)
+    sp:SetDuration(0.6)
+
+    g.hover = g:CreateTexture(nil, "OVERLAY")
+    g.hover:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+    g.hover:SetBlendMode("ADD")
+    g.hover:SetAlpha(0.45)
+    g.hover:SetSize(GEM + 2, GEM + 2)
+    g.hover:SetPoint("CENTER")
+    g.hover:Hide()
+
+    g.flash = g:CreateTexture(nil, "OVERLAY")
+    g.flash:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+    g.flash:SetBlendMode("ADD")
+    g.flash:SetVertexColor(1, 1, 1)
+    g.flash:SetSize(GEM + 4, GEM + 4)
+    g.flash:SetPoint("CENTER")
+    g.flash:Hide()
 
     g.hint = g:CreateTexture(nil, "OVERLAY")
     g.hint:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
@@ -194,6 +251,7 @@ local function AcquireGem()
     local g = table.remove(gemPool) or CreateGemFrame()
     g:SetAlpha(1)
     g.icon:SetSize(GEM, GEM)
+    g:SetFrameLevel(g.baseLevel)
     g:Show()
     return g
 end
@@ -202,8 +260,12 @@ local function ReleaseGem(g)
     g:Hide()
     g.pulse:Stop()
     g.hintPulse:Stop()
+    g.selPulse:Stop()
     g.sel:Hide()
     g.hint:Hide()
+    g.hover:Hide()
+    g.flash:Hide()
+    if hoverGem == g then hoverGem = nil end
     gemPool[#gemPool + 1] = g
 end
 
@@ -244,7 +306,10 @@ local function SyncBoard()
             end
             StyleGem(g, gem)
             g:SetAlpha(1)
-            g.icon:SetSize(GEM, GEM)
+            local size = (selR == r and selC == c) and GEM * SEL_SCALE or GEM
+            g.icon:SetSize(size, size)
+            if g:GetFrameLevel() ~= g.baseLevel then g:SetFrameLevel(g.baseLevel) end
+            g.flash:Hide()
             PlaceGem(g, r, c)
             seen[gem.id] = true
         end
@@ -263,7 +328,7 @@ end
 
 local popupPool = {}
 
-local function ShowPopup(text, r, c, large)
+local function ShowPopup(text, r, c, large, chain)
     local p = table.remove(popupPool)
     if not p then
         p = CreateFrame("Frame", nil, overlay)
@@ -286,6 +351,13 @@ local function ShowPopup(text, r, c, large)
     end
     p.text:SetFontObject(large and GameFontNormalLarge or GameFontHighlight)
     p.text:SetText(text)
+    if chain and chain >= 3 then
+        p.text:SetTextColor(1, 0.5, 0.1)
+    elseif chain == 2 then
+        p.text:SetTextColor(1, 0.82, 0)
+    else
+        p.text:SetTextColor(1, 1, 1)
+    end
     p:ClearAllPoints()
     p:SetPoint("CENTER", overlay, "TOPLEFT", (c - 0.5) * CELL, -(r - 0.5) * CELL)
     p:Show()
@@ -391,25 +463,209 @@ local function CreateToast()
     return t
 end
 
-local function UpdateScore()
-    hud.score:SetText(Fmt(displayedScore))
+local StartFx
+
+local function ShowScore()
+    local v = math.floor(scoreShown + 0.5)
+    if v ~= shownText then
+        shownText = v
+        hud.score:SetText(Fmt(v))
+    end
 end
 
-local function UpdateHUD()
+-- snap = true setter tallet rett på, ellers telles det opp
+local function SetScore(v, snap)
+    scoreTarget = v
+    if snap or not overlay or not overlay:IsVisible() then
+        scoreShown, scoreActive = v, false
+        ShowScore()
+    elseif v ~= scoreShown then
+        scoreFrom, scoreT, scoreActive = scoreShown, 0, true
+        StartFx()
+    end
+end
+
+local function DrawBar(level, value)
+    if level >= Progression.MAX_LEVEL then
+        hud.xpBar:SetMinMaxValues(0, 1)
+        hud.xpBar:SetValue(1)
+    else
+        hud.xpBar:SetMinMaxValues(0, Progression.XPToNext(level))
+        hud.xpBar:SetValue(value)
+    end
+end
+
+local function UpdateHUD(smooth)
     local p = ns.db.profile
     hud.level:SetText("Level " .. p.level)
     hud.rank:SetText(Progression.Rank(p.level))
     if p.level >= Progression.MAX_LEVEL then
-        hud.xpBar:SetMinMaxValues(0, 1)
-        hud.xpBar:SetValue(1)
         hud.xpText:SetText("Max level")
     else
-        local need = Progression.XPToNext(p.level)
-        hud.xpBar:SetMinMaxValues(0, need)
-        hud.xpBar:SetValue(p.xp)
-        hud.xpText:SetText(("%s / %s XP"):format(Fmt(p.xp), Fmt(need)))
+        hud.xpText:SetText(("%s / %s XP"):format(Fmt(p.xp), Fmt(Progression.XPToNext(p.level))))
     end
-    UpdateScore()
+    barTargetLevel, barTargetXP = p.level, p.xp
+    if smooth and barLevel and barLevel <= p.level and overlay:IsVisible() then
+        barActive = true
+        StartFx()
+    else
+        barLevel, barValue, barActive = p.level, p.xp, false
+        DrawBar(p.level, p.xp)
+    end
+    if not smooth then SetScore(scoreTarget, true) end
+end
+
+----------------------------------------------------------------------
+-- Effekter: teksturer på overleggsrammen, én OnUpdate mens noe pågår
+----------------------------------------------------------------------
+
+local fxPool, fxActive = {}, {}
+local fxRunning = false
+local shakeT, shaking = 0, false
+
+local function SetBoardOffset(dx, dy)
+    board:ClearAllPoints()
+    board:SetPoint("TOPLEFT", 1 + dx, -1 + dy)
+end
+
+local function FxOnUpdate(self, elapsed)
+    for i = #fxActive, 1, -1 do
+        local e = fxActive[i]
+        e.t = e.t + elapsed
+        local k = e.t / e.dur
+        if k >= 1 then
+            e.tex:Hide()
+            table.remove(fxActive, i)
+            fxPool[#fxPool + 1] = e
+        else
+            local ek = EaseOut(k)
+            e.tex:SetSize(e.w0 + (e.w1 - e.w0) * ek, e.h0 + (e.h1 - e.h0) * ek)
+            e.tex:SetAlpha(e.a * (1 - k))
+            if e.rot ~= 0 then e.tex:SetRotation(e.rot * k) end
+        end
+    end
+
+    if shaking then
+        shakeT = shakeT + elapsed
+        if shakeT >= SHAKE_TIME then
+            shaking = false
+            SetBoardOffset(0, 0)
+        else
+            local f = 1 - shakeT / SHAKE_TIME
+            SetBoardOffset(2 * f * math.sin(shakeT * 110), 2 * f * math.cos(shakeT * 130))
+        end
+    end
+
+    if scoreActive then
+        scoreT = scoreT + elapsed
+        local k = math.min(1, scoreT / SCORE_TIME)
+        scoreShown = scoreFrom + (scoreTarget - scoreFrom) * EaseOut(k)
+        if k >= 1 then
+            scoreShown, scoreActive = scoreTarget, false
+        end
+        ShowScore()
+    end
+
+    if barActive then
+        if barLevel >= Progression.MAX_LEVEL then
+            barActive = false
+            DrawBar(barLevel, 0)
+        else
+            local need = Progression.XPToNext(barLevel)
+            local wraps = barLevel < barTargetLevel
+            local goal = wraps and need or barTargetXP
+            barValue = barValue + need * elapsed / BAR_TIME
+            if barValue >= goal then
+                if wraps then
+                    barLevel, barValue = barLevel + 1, 0
+                else
+                    barValue, barActive = goal, false
+                end
+            end
+            DrawBar(barLevel, barValue)
+        end
+    end
+
+    if #fxActive == 0 and not shaking and not scoreActive and not barActive then
+        fxRunning = false
+        self:SetScript("OnUpdate", nil)
+    end
+end
+
+function StartFx()
+    if fxRunning then return end
+    fxRunning = true
+    overlay:SetScript("OnUpdate", FxOnUpdate)
+end
+
+local function AddFx(path, cr, cg, cb, x, y, w0, h0, w1, h1, dur, alpha, rot)
+    local e = table.remove(fxPool)
+    if not e then
+        e = { tex = overlay:CreateTexture(nil, "OVERLAY") }
+        e.tex:SetBlendMode("ADD")
+    end
+    if path then
+        e.tex:SetTexture(path)
+        e.tex:SetVertexColor(cr, cg, cb)
+    else
+        e.tex:SetColorTexture(cr, cg, cb, 1)
+        e.tex:SetVertexColor(1, 1, 1)
+    end
+    e.tex:SetRotation(0)
+    e.tex:SetSize(w0, h0)
+    e.tex:SetAlpha(alpha)
+    e.tex:ClearAllPoints()
+    e.tex:SetPoint("CENTER", overlay, "TOPLEFT", x, y)
+    e.tex:Show()
+    e.t, e.dur, e.a, e.rot = 0, dur, alpha, rot or 0
+    e.w0, e.h0, e.w1, e.h1 = w0, h0, w1, h1
+    fxActive[#fxActive + 1] = e
+    StartFx()
+end
+
+local function CellX(c) return (c - 0.5) * CELL end
+local function CellY(r) return -(r - 0.5) * CELL end
+
+local function FxSpark(r, c, color)
+    local col = GEM_COLORS[color] or PRISM_COLOR
+    AddFx("Interface\\Cooldown\\star4", col[1], col[2], col[3], CellX(c), CellY(r),
+        8, 8, CELL * 1.3, CELL * 1.3, 0.35, 1, 1.6)
+end
+
+local function FxBeam(horizontal, r, c)
+    if horizontal then
+        AddFx(nil, 1, 0.97, 0.8, BOARD_PX / 2, CellY(r), BOARD_PX, 4, BOARD_PX, 12, 0.3, 1)
+        AddFx(nil, 1, 0.85, 0.4, BOARD_PX / 2, CellY(r), BOARD_PX, 10, BOARD_PX, CELL, 0.3, 0.45)
+    else
+        AddFx(nil, 1, 0.97, 0.8, CellX(c), -BOARD_PX / 2, 4, BOARD_PX, 12, BOARD_PX, 0.3, 1)
+        AddFx(nil, 1, 0.85, 0.4, CellX(c), -BOARD_PX / 2, 10, BOARD_PX, CELL, BOARD_PX, 0.3, 0.45)
+    end
+end
+
+local function FxRing(r, c)
+    AddFx("Interface\\Cooldown\\ping4", 1, 0.6, 0.2, CellX(c), CellY(r),
+        CELL * 0.6, CELL * 0.6, CELL * 3.4, CELL * 3.4, 0.35, 0.9)
+    shakeT, shaking = 0, true
+    StartFx()
+end
+
+local function FxBoardFlash()
+    AddFx(nil, 0.9, 0.95, 1, BOARD_PX / 2, -BOARD_PX / 2, BOARD_PX, BOARD_PX, BOARD_PX, BOARD_PX, 0.25, 0.5)
+end
+
+local function StopFx()
+    for i = #fxActive, 1, -1 do
+        local e = fxActive[i]
+        e.tex:Hide()
+        fxPool[#fxPool + 1] = e
+        fxActive[i] = nil
+    end
+    if shaking then
+        shaking = false
+        SetBoardOffset(0, 0)
+    end
+    scoreActive, barActive, fxRunning = false, false, false
+    overlay:SetScript("OnUpdate", nil)
 end
 
 function UI.ShowReport(report)
@@ -425,7 +681,7 @@ function UI.ShowReport(report)
     if report.achievements then
         for i = 1, #report.achievements do QueueToast(report.achievements[i]) end
     end
-    UpdateHUD()
+    UpdateHUD(true)
 end
 
 ----------------------------------------------------------------------
@@ -473,7 +729,11 @@ end
 local function ClearSelection()
     if selR then
         local g = gemFrames[ns.board.cells[selR][selC].id]
-        if g then g.sel:Hide() end
+        if g then
+            g.sel:Hide()
+            g.selPulse:Stop()
+            g.icon:SetSize(GEM, GEM)
+        end
     end
     selR, selC = nil, nil
 end
@@ -481,7 +741,11 @@ end
 local function Select(r, c)
     ClearSelection()
     local g = gemFrames[ns.board.cells[r][c].id]
-    if g then g.sel:Show() end
+    if g then
+        g.sel:Show()
+        g.selPulse:Play()
+        g.icon:SetSize(GEM * SEL_SCALE, GEM * SEL_SCALE)
+    end
     selR, selC = r, c
     PlaySFX("select")
 end
@@ -490,17 +754,35 @@ end
 -- Trekk
 ----------------------------------------------------------------------
 
-local function AddSwapPhase(ga, gb, r1, c1, r2, c2, amount, duration)
+-- Står gem a og b amt (0..1) av veien mellom rute 1 og rute 2
+local function PlaceSwapped(ga, gb, r1, c1, r2, c2, amt)
+    PlaceGem(ga, r1 + (r2 - r1) * amt, c1 + (c2 - c1) * amt)
+    PlaceGem(gb, r2 + (r1 - r2) * amt, c2 + (c1 - c2) * amt)
+    local p = math.min(1, math.max(0, amt))
+    local size = GEM * (1 + SWAP_GROW * math.sin(math.pi * p))
+    ga.icon:SetSize(size, size)
+    gb.icon:SetSize(size, size)
+end
+
+-- Går fra amt "from" til "to"; wobble gir en dempet svingning rundt målet
+local function AddSwapPhase(ga, gb, r1, c1, r2, c2, from, to, duration, ease, wobble)
     AddPhase(duration, nil, function(k)
-        local e = EaseOut(k) * amount
-        PlaceGem(ga, r1 + (r2 - r1) * e, c1 + (c2 - c1) * e)
-        PlaceGem(gb, r2 + (r1 - r2) * e, c2 + (c1 - c2) * e)
+        local e = from + (to - from) * ease(k)
+        if wobble then e = e - wobble * math.sin(k * 2 * math.pi) * (1 - k) end
+        PlaceSwapped(ga, gb, r1, c1, r2, c2, e)
+    end, function()
+        PlaceSwapped(ga, gb, r1, c1, r2, c2, to)
+        ga.icon:SetSize(GEM, GEM)
+        gb.icon:SetSize(GEM, GEM)
+        ga:SetFrameLevel(ga.baseLevel)
+        gb:SetFrameLevel(gb.baseLevel)
     end)
 end
 
-local function AddClearStep(step)
+local function AddClearStep(step, flashBoard)
+    local pace = Pace(step.chain)
     local dying, born = {}, {}
-    AddPhase(0.2, function()
+    AddPhase(0.22 * pace, function()
         local sumR, sumC = 0, 0
         for i = 1, #step.cleared do
             local cl = step.cleared[i]
@@ -508,9 +790,26 @@ local function AddClearStep(step)
             if g then
                 gemFrames[cl.id] = nil
                 dying[#dying + 1] = g
+                g.flash:SetAlpha(1)
+                g.flash:Show()
             end
+            FxSpark(cl.r, cl.c, cl.color)
+            if cl.special == "prism" then flashBoard = true end
             sumR, sumC = sumR + cl.r, sumC + cl.c
         end
+        for i = 1, #step.triggered do
+            local tr = step.triggered[i]
+            if tr.special == "lineH" then
+                FxBeam(true, tr.r, tr.c)
+            elseif tr.special == "lineV" then
+                FxBeam(false, tr.r, tr.c)
+            elseif tr.special == "volatile" then
+                FxRing(tr.r, tr.c)
+            elseif tr.special == "prism" then
+                flashBoard = true
+            end
+        end
+        if flashBoard then FxBoardFlash() end
         for i = 1, #step.created do
             local cr = step.created[i]
             local g = AcquireGem()
@@ -520,17 +819,21 @@ local function AddClearStep(step)
             g:SetAlpha(0)
             born[#born + 1] = g
         end
-        displayedScore = displayedScore + step.score
-        UpdateScore()
+        SetScore(scoreTarget + step.score)
         local n = #step.cleared
-        if n > 0 then ShowPopup("+" .. Fmt(step.score), sumR / n, sumC / n) end
-        if step.chain >= 2 then ShowPopup("Chain x" .. step.chain, 1.2, 4.5, true) end
+        if n > 0 then ShowPopup("+" .. Fmt(step.score), sumR / n, sumC / n, false, step.chain) end
+        if step.chain >= 2 then ShowPopup("Chain x" .. step.chain, 1.2, 4.5, true, step.chain) end
         PlaySFX(step.chain >= 2 and "chain" or "clear")
     end, function(k)
-        local shrink = GEM * (1 - 0.6 * k)
+        -- Først et raskt hvitt glimt, så krymper og toner steinen ut
+        local kk = math.max(0, (k - 0.25) / 0.75)
+        local shrink = GEM * (1 - 0.6 * kk)
+        local flash = math.max(0, 1 - k / 0.3)
         for i = 1, #dying do
-            dying[i]:SetAlpha(1 - k)
-            dying[i].icon:SetSize(shrink, shrink)
+            local g = dying[i]
+            g:SetAlpha(1 - kk)
+            g.icon:SetSize(shrink, shrink)
+            g.flash:SetAlpha(flash)
         end
         local grow = GEM * (1.5 - 0.5 * EaseOut(k))
         for i = 1, #born do
@@ -541,37 +844,63 @@ local function AddClearStep(step)
         for i = 1, #dying do ReleaseGem(dying[i]) end
     end)
 
-    local maxDist = 0
+    -- Fall: tyngdekraft-ease med liten sprett i landingen. Nye steiner starter forskjøvet.
+    local movers = {}
+    local bounce = 0.1 * pace
+    local total = 0
+    local function AddMover(id, from, to, c, delay, spawn)
+        local fall = (0.07 + 0.055 * math.sqrt(to - from)) * pace
+        movers[#movers + 1] = { id = id, from = from, to = to, c = c, delay = delay * pace, fall = fall, spawn = spawn }
+        total = math.max(total, delay * pace + fall + bounce)
+    end
     for i = 1, #step.falls do
         local f = step.falls[i]
-        maxDist = math.max(maxDist, f.toR - f.fromR)
+        AddMover(f.id, f.fromR, f.toR, f.c, 0)
     end
     for i = 1, #step.spawns do
-        local s = step.spawns[i]
-        maxDist = math.max(maxDist, s.r - s.fromR)
+        local sp = step.spawns[i]
+        AddMover(sp.id, sp.fromR, sp.r, sp.c, 0.03 * math.max(0, -sp.fromR), sp)
     end
-    if maxDist == 0 then return end
+    if #movers == 0 then return end
 
-    local movers = {}
-    AddPhase(0.1 + 0.035 * maxDist, function()
-        for i = 1, #step.falls do
-            local f = step.falls[i]
-            local g = gemFrames[f.id]
-            if g then movers[#movers + 1] = { g = g, from = f.fromR, to = f.toR, c = f.c } end
-        end
-        for i = 1, #step.spawns do
-            local s = step.spawns[i]
-            local g = AcquireGem()
-            gemFrames[s.id] = g
-            StyleGem(g, s)
-            PlaceGem(g, s.fromR, s.c)
-            movers[#movers + 1] = { g = g, from = s.fromR, to = s.r, c = s.c }
-        end
-    end, function(k)
-        local e = EaseIn(k)
+    AddPhase(total, function()
         for i = 1, #movers do
             local m = movers[i]
-            PlaceGem(m.g, m.from + (m.to - m.from) * e, m.c)
+            if m.spawn then
+                local g = AcquireGem()
+                gemFrames[m.id] = g
+                StyleGem(g, m.spawn)
+                PlaceGem(g, m.from, m.c)
+                m.g = g
+            else
+                m.g = gemFrames[m.id]
+            end
+        end
+    end, function(k)
+        local t = k * total
+        for i = 1, #movers do
+            local m = movers[i]
+            local g = m.g
+            if g then
+                local u = t - m.delay
+                local row
+                if u <= 0 then
+                    row = m.from
+                elseif u < m.fall then
+                    local q = u / m.fall
+                    row = m.from + (m.to - m.from) * q * q
+                elseif u < m.fall + bounce then
+                    row = m.to - 0.06 * math.sin(math.pi * (u - m.fall) / bounce)
+                else
+                    row = m.to
+                end
+                PlaceGem(g, row, m.c)
+            end
+        end
+    end, function()
+        for i = 1, #movers do
+            local m = movers[i]
+            if m.g then PlaceGem(m.g, m.to, m.c) end
         end
     end)
 end
@@ -595,7 +924,7 @@ local function AddShuffleStep(step)
     end)
 end
 
-local function TryMove(r1, c1, r2, c2)
+local function TryMove(r1, c1, r2, c2, startAmt)
     if busy or not Core.AreAdjacent(r1, c1, r2, c2) then return end
     if r2 < 1 or r2 > SIZE or c2 < 1 or c2 > SIZE then return end
     CancelHint()
@@ -609,12 +938,13 @@ local function TryMove(r1, c1, r2, c2)
         return
     end
     local prismMove = a.special == "prism" or b.special == "prism"
+    local from = startAmt or 0
 
     local result = Core.TrySwap(ns.board, r1, c1, r2, c2)
     if not result.valid then
         PlaySFX("invalid")
-        AddSwapPhase(ga, gb, r1, c1, r2, c2, 1, 0.12)
-        AddSwapPhase(ga, gb, r2, c2, r1, c1, 1, 0.12)
+        AddSwapPhase(ga, gb, r1, c1, r2, c2, from, 0.35, 0.08, EaseOut)
+        AddSwapPhase(ga, gb, r1, c1, r2, c2, 0.35, 0, 0.22, EaseOut, 0.08)
         RunPhases(ScheduleHint)
         return
     end
@@ -623,14 +953,11 @@ local function TryMove(r1, c1, r2, c2)
 
     if prismMove then
         -- Prismet bytter ikke plass, det tømmer brettet for en farge der det står
-        AddSwapPhase(ga, gb, r1, c1, r2, c2, 0.35, 0.08)
-        AddPhase(0.08, nil, function(k)
-            local e = 0.35 * (1 - k)
-            PlaceGem(ga, r1 + (r2 - r1) * e, c1 + (c2 - c1) * e)
-            PlaceGem(gb, r2 + (r1 - r2) * e, c2 + (c1 - c2) * e)
-        end)
+        AddSwapPhase(ga, gb, r1, c1, r2, c2, from, 0.35, 0.08, EaseOut)
+        AddSwapPhase(ga, gb, r1, c1, r2, c2, 0.35, 0, 0.08, EaseIn)
     else
-        AddSwapPhase(ga, gb, r1, c1, r2, c2, 1, 0.14)
+        local dur = math.max(0.06, SWAP_TIME * (1 - from))
+        AddSwapPhase(ga, gb, r1, c1, r2, c2, from, 1, dur, from > 0 and EaseOut or EaseInOut)
     end
 
     for i = 1, #result.steps do
@@ -638,30 +965,44 @@ local function TryMove(r1, c1, r2, c2)
         if step.kind == "shuffle" then
             AddShuffleStep(step)
         else
-            AddClearStep(step)
+            AddClearStep(step, i == 1 and prismMove)
         end
     end
 
     RunPhases(function()
         SyncBoard()
-        displayedScore = ns.board.score
+        SetScore(ns.board.score)
         UI.ShowReport(report)
         ScheduleHint()
     end)
+end
+
+local function SpringBack(ga, gb, r1, c1, r2, c2, amt)
+    if not ga or not gb or amt <= 0 then
+        SyncBoard()
+        ScheduleHint()
+        return
+    end
+    AddSwapPhase(ga, gb, r1, c1, r2, c2, amt, 0, 0.12, EaseOut)
+    RunPhases(ScheduleHint)
 end
 
 ----------------------------------------------------------------------
 -- Mus
 ----------------------------------------------------------------------
 
--- Returnerer rad/kolonne under musepekeren, også utenfor brettet
-local function CursorCell()
+-- Musepekeren i brettets koordinater (også utenfor brettet)
+local function CursorLocal()
     local x, y = GetCursorPosition()
     local s = board:GetEffectiveScale()
     local left, top = board:GetLeft(), board:GetTop()
     if not left then return end
-    x = x / s - left
-    y = top - y / s
+    return x / s - left, top - y / s
+end
+
+local function CursorCell()
+    local x, y = CursorLocal()
+    if not x then return end
     return math.floor(y / CELL) + 1, math.floor(x / CELL) + 1
 end
 
@@ -669,29 +1010,95 @@ local function InBoard(r, c)
     return r and r >= 1 and r <= SIZE and c >= 1 and c <= SIZE
 end
 
-local function OnBoardMouseDown(_, button)
-    if button ~= "LeftButton" then
-        ClearSelection()
-        return
-    end
-    if busy then return end
-    local r, c = CursorCell()
-    if InBoard(r, c) then downR, downC = r, c end
+local function SetHover(g)
+    if hoverGem == g then return end
+    if hoverGem then hoverGem.hover:Hide() end
+    hoverGem = g
+    if g then g.hover:Show() end
 end
 
-local function OnBoardMouseUp(_, button)
-    if button ~= "LeftButton" or not downR then return end
+local TrackerOnUpdate
+
+local function RefreshTracker()
+    local want = hovering or downR
+    if want and not trackerOn then
+        trackerOn = true
+        tracker:SetScript("OnUpdate", TrackerOnUpdate)
+    elseif not want and trackerOn then
+        trackerOn = false
+        tracker:SetScript("OnUpdate", nil)
+        SetHover(nil)
+    end
+end
+
+local function ResetPress()
+    downR, downC, downX, downY = nil, nil, nil, nil
+    dragging, dragAmt, dragNR, dragNC, dragGa, dragGb = false, 0, nil, nil, nil, nil
+end
+
+-- Avbryter et dratt uten å bytte noe (vindu skjult, brett byttet)
+local function CancelDrag()
+    if dragging and dragGa then
+        dragGa:SetFrameLevel(dragGa.baseLevel)
+        if dragGb then
+            PlaceSwapped(dragGa, dragGb, downR, downC, dragNR, dragNC, 0)
+            dragGa.icon:SetSize(GEM, GEM)
+            dragGb.icon:SetSize(GEM, GEM)
+        end
+    end
+    ResetPress()
+    if tracker then RefreshTracker() end
+end
+
+-- Flytter steinen med musen langs den dominerende aksen, maks én rute
+local function UpdateDrag()
+    if not downR then return end
+    local x, y = CursorLocal()
+    if not x then return end
+    local dx, dy = x - downX, y - downY
+    if not dragging then
+        if dx * dx + dy * dy < CLICK_PX * CLICK_PX then return end
+        dragging = true
+        CancelHint()
+        ClearSelection()
+        SetHover(nil)
+        dragGa = gemFrames[ns.board.cells[downR][downC].id]
+        if dragGa then dragGa:SetFrameLevel(dragGa.baseLevel + 2) end
+    end
+    local dr, dc, d = 0, 0, 0
+    if math.abs(dx) >= math.abs(dy) then
+        dc, d = dx > 0 and 1 or -1, math.abs(dx)
+    else
+        dr, d = dy > 0 and 1 or -1, math.abs(dy)
+    end
+    local nr, nc = downR + dr, downC + dc
+    local amt = math.min(1, d / CELL)
+    if not InBoard(nr, nc) then amt = 0 end
+    if nr ~= dragNR or nc ~= dragNC then
+        if dragGb then
+            PlaceGem(dragGb, dragNR, dragNC)
+            dragGb.icon:SetSize(GEM, GEM)
+        end
+        dragNR, dragNC = nr, nc
+        dragGb = InBoard(nr, nc) and gemFrames[ns.board.cells[nr][nc].id] or nil
+    end
+    dragAmt = amt
+    if dragGa and dragGb then PlaceSwapped(dragGa, dragGb, downR, downC, nr, nc, amt) end
+end
+
+local function EndPress()
+    if not downR then return end
+    UpdateDrag()
     local fromR, fromC = downR, downC
-    downR, downC = nil, nil
+    local wasDrag, amt, nr, nc, ga, gb = dragging, dragAmt, dragNR, dragNC, dragGa, dragGb
+    ResetPress()
+    RefreshTracker()
     if busy then return end
-    local r, c = CursorCell()
-    if r and (r ~= fromR or c ~= fromC) then
-        -- Dra: bytt med naboen i retningen musen gikk
-        local dr, dc = r - fromR, c - fromC
-        if math.abs(dc) > math.abs(dr) then
-            TryMove(fromR, fromC, fromR, fromC + (dc > 0 and 1 or -1))
+    if wasDrag then
+        if amt >= COMMIT and InBoard(nr, nc) then
+            TryMove(fromR, fromC, nr, nc, amt)
         else
-            TryMove(fromR, fromC, fromR + (dr > 0 and 1 or -1), fromC)
+            SpringBack(ga, gb, fromR, fromC, nr, nc, amt)
         end
         return
     end
@@ -707,6 +1114,48 @@ local function OnBoardMouseUp(_, button)
     end
     Select(fromR, fromC)
     ScheduleHint()
+end
+
+function TrackerOnUpdate()
+    if downR then
+        -- Slippes knappen utenfor brettet er det ikke sikkert OnMouseUp kommer
+        if not IsMouseButtonDown("LeftButton") then
+            EndPress()
+        else
+            UpdateDrag()
+        end
+        return
+    end
+    if busy then
+        SetHover(nil)
+        return
+    end
+    local r, c = CursorCell()
+    if InBoard(r, c) then
+        SetHover(gemFrames[ns.board.cells[r][c].id])
+    else
+        SetHover(nil)
+    end
+end
+
+local function OnBoardMouseDown(_, button)
+    if button ~= "LeftButton" then
+        ClearSelection()
+        return
+    end
+    if busy then return end
+    local r, c = CursorCell()
+    if InBoard(r, c) then
+        local x, y = CursorLocal()
+        downR, downC, downX, downY = r, c, x, y
+        dragging, dragAmt, dragNR, dragNC, dragGa, dragGb = false, 0, nil, nil, nil, nil
+        RefreshTracker()
+    end
+end
+
+local function OnBoardMouseUp(_, button)
+    if button ~= "LeftButton" then return end
+    EndPress()
 end
 
 ----------------------------------------------------------------------
@@ -953,6 +1402,15 @@ function UI.Create()
     board:EnableMouse(true)
     board:SetScript("OnMouseDown", OnBoardMouseDown)
     board:SetScript("OnMouseUp", OnBoardMouseUp)
+    board:SetScript("OnEnter", function()
+        hovering = true
+        RefreshTracker()
+    end)
+    board:SetScript("OnLeave", function()
+        hovering = false
+        RefreshTracker()
+    end)
+    tracker = CreateFrame("Frame", nil, frame)
     for r = 1, SIZE do
         for c = 1, SIZE do
             local t = board:CreateTexture(nil, "BACKGROUND")
@@ -997,19 +1455,20 @@ function UI.Create()
         PlaySFX("open")
         if not busy then
             SyncBoard()
-            displayedScore = ns.board.score
+            scoreTarget = ns.board.score
         end
-        UpdateHUD()
+        UpdateHUD(false)
         if progressPanel:IsShown() then RefreshProgressPanel() elseif not busy then ScheduleHint() end
     end)
     frame:SetScript("OnHide", function()
         PlaySFX("close")
         CancelHint()
         ClearSelection()
-        downR, downC = nil, nil
+        hovering = false
+        CancelDrag()
     end)
 
-    displayedScore = ns.board.score
+    scoreTarget, scoreShown = ns.board.score, ns.board.score
 end
 
 function UI.Show() if frame then frame:Show() end end
@@ -1028,16 +1487,18 @@ end
 -- Kalles når brettet byttes ut (nytt brett eller nullstilling)
 function UI.OnBoardReplaced()
     if not frame then return end
+    CancelDrag()
     StopPhases()
+    StopFx()
     CancelHint()
-    selR, selC, downR, downC = nil, nil, nil, nil
+    selR, selC = nil, nil
     for id, g in pairs(gemFrames) do
         ReleaseGem(g)
         gemFrames[id] = nil
     end
     SyncBoard()
-    displayedScore = ns.board.score
-    UpdateHUD()
+    scoreTarget = ns.board.score
+    UpdateHUD(false)
     if progressPanel:IsShown() then RefreshProgressPanel() end
     if frame:IsShown() and not progressPanel:IsShown() then ScheduleHint() end
 end

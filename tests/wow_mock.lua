@@ -11,6 +11,7 @@ M.chat = {}
 M.popups = {}
 M.sounds = 0
 M.cursorX, M.cursorY = 0, 0
+M.mouseDown = false
 
 local function strictIndex(methods, kind)
     return function(obj, key)
@@ -232,6 +233,10 @@ function M.Install()
     local env = {
         CreateFrame = M.CreateFrame,
         GetCursorPosition = function() return M.cursorX, M.cursorY end,
+        IsMouseButtonDown = function(button)
+            assert(button == nil or button == "LeftButton" or button == "RightButton", "bad mouse button")
+            return M.mouseDown
+        end,
         UnitOnTaxi = function() return M.onTaxi end,
         PlaySound = function(id, channel)
             assert(type(id) == "number", "PlaySound needs a numeric kit id")
