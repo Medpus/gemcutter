@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#3a2f47"/>
+      <stop offset="1" stop-color="#110d16"/>
+    </radialGradient>
+    <linearGradient id="rubyO" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6670"/><stop offset="1" stop-color="#7d0c18"/></linearGradient>
+    <linearGradient id="rubyT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9aa0"/><stop offset="1" stop-color="#e02639"/></linearGradient>
+    <linearGradient id="sapO" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#77bcff"/><stop offset="1" stop-color="#0f358a"/></linearGradient>
+    <linearGradient id="sapT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b3dcff"/><stop offset="1" stop-color="#2c6fe0"/></linearGradient>
+    <linearGradient id="emO" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#74f290"/><stop offset="1" stop-color="#0a5e27"/></linearGradient>
+    <linearGradient id="emT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b0ffc0"/><stop offset="1" stop-color="#1cab4a"/></linearGradient>
+    <linearGradient id="topO" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe68a"/><stop offset="1" stop-color="#9c6204"/></linearGradient>
+    <linearGradient id="topT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c4"/><stop offset="1" stop-color="#f0b21a"/></linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="62" height="62" rx="11" fill="url(#bg)" stroke="#b8924a" stroke-width="1.6"/>
+
+  <g stroke-linejoin="round">
+    <!-- rubin, sekskant -->
+    <polygon points="19,7.5 28.96,13.25 28.96,24.75 19,30.5 9.04,24.75 9.04,13.25" fill="url(#rubyO)" stroke="#2a0508" stroke-width="0.9"/>
+    <polygon points="19,13.5 23.76,16.25 23.76,21.75 19,24.5 14.24,21.75 14.24,16.25" fill="url(#rubyT)"/>
+    <path d="M19 7.5L19 13.5M28.96 13.25L23.76 16.25M28.96 24.75L23.76 21.75M19 30.5L19 24.5M9.04 24.75L14.24 21.75M9.04 13.25L14.24 16.25" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.7"/>
+
+    <!-- safir, rombe -->
+    <polygon points="45,7 57,19 45,31 33,19" fill="url(#sapO)" stroke="#06143a" stroke-width="0.9"/>
+    <polygon points="45,13 51,19 45,25 39,19" fill="url(#sapT)"/>
+    <path d="M45 7L45 13M57 19L51 19M45 31L45 25M33 19L39 19" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.7"/>
+
+    <!-- smaragd, åttekant -->
+    <polygon points="14,34 24,34 29.5,39.5 29.5,50.5 24,56 14,56 8.5,50.5 8.5,39.5" fill="url(#emO)" stroke="#04260f" stroke-width="0.9"/>
+    <polygon points="16,39 22,39 24.5,41.5 24.5,48.5 22,51 16,51 13.5,48.5 13.5,41.5" fill="url(#emT)"/>
+    <path d="M14 34L16 39M24 34L22 39M29.5 39.5L24.5 41.5M29.5 50.5L24.5 48.5M24 56L22 51M14 56L16 51M8.5 50.5L13.5 48.5M8.5 39.5L13.5 41.5" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.7"/>
+
+    <!-- topas, rund briljant -->
+    <circle cx="45" cy="45" r="11.5" fill="url(#topO)" stroke="#3a2302" stroke-width="0.9"/>
+    <polygon points="45,39 49.24,40.76 51,45 49.24,49.24 45,51 40.76,49.24 39,45 40.76,40.76" fill="url(#topT)"/>
+    <path d="M45 33.5L45 39M53.13 36.87L49.24 40.76M56.5 45L51 45M53.13 53.13L49.24 49.24M45 56.5L45 51M36.87 53.13L40.76 49.24M33.5 45L39 45M36.87 36.87L40.76 40.76" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.7"/>
+  </g>
+
+  <!-- glans -->
+  <g fill="#ffffff">
+    <ellipse cx="16.6" cy="15.6" rx="2.2" ry="1.2" opacity="0.75" transform="rotate(-30 16.6 15.6)"/>
+    <ellipse cx="42.6" cy="15.4" rx="2" ry="1.1" opacity="0.75" transform="rotate(-45 42.6 15.4)"/>
+    <ellipse cx="16.4" cy="41.6" rx="2" ry="1.1" opacity="0.7"/>
+    <ellipse cx="42.8" cy="41.4" rx="2" ry="1.1" opacity="0.75" transform="rotate(-40 42.8 41.4)"/>
+    <path d="M57 6.2L57.9 9.1L60.8 10L57.9 10.9L57 13.8L56.1 10.9L53.2 10L56.1 9.1Z" opacity="0.9"/>
+  </g>
+</svg>

@@ -1,0 +1,24 @@
+# BigWigs packager, se .github/workflows/release.yml
+package-as: Gemcutter
+
+# Addonet ligger i en undermappe og flyttes til roten i zip-filen
+move-folders:
+  Gemcutter/Gemcutter: Gemcutter
+
+externals:
+  Gemcutter/Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+  Gemcutter/Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  Gemcutter/Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1
+  Gemcutter/Libs/LibDBIcon-1.0: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
+
+ignore:
+  - README.md
+  - AGENTS.md
+  - CLAUDE.md
+  - tests
+  - scripts
+  - assets
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

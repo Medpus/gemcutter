@@ -1,0 +1,47 @@
+name: CI
+
+# Tester og bygger zip-filen ved hver push, uten å laste opp noe.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install LuaJIT
+        run: sudo apt-get update && sudo apt-get install -y luajit
+
+      - name: Tests
+        run: |
+          luajit tests/run.lua
+          luajit tests/ui_smoke.lua
+
+      - name: Lua 5.1 syntax (no goto in addon files)
+        run: |
+          for f in Gemcutter/*.lua; do luajit -bl "$f" > /dev/null; done
+          ! grep -nE '\bgoto\b' Gemcutter/*.lua
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install Subversion (CurseForge externals)
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Package without upload
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -d
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gemcutter
+          path: .release/*.zip

@@ -13,3 +13,12 @@
   den moderne klienten.
 - Kjør `luajit tests/run.lua` og `luajit tests/ui_smoke.lua` før commit. LuaJIT godtar `goto`, men WoW
   gjør det ikke, så addonfilene må holde seg til Lua 5.1.
+- Bibliotekene (LibStub, CallbackHandler, LibDataBroker, LibDBIcon) er ikke i git. `.pkgmeta`
+  henter dem som externals ved release; `scripts/fetch-libs.sh` henter de samme filene lokalt.
+  Røyktesten bruker `tests/fake_libs.lua` i stedet for de ekte bibliotekene.
+- Minimapknappen må gå via LibDBIcon. Leatrix Plus og andre knappesamlere avviser egne knapper.
+- Ikonet tegnes i `assets/icon.svg` og bygges med `scripts/make-icon.sh`. TGA-en skrives for hånd,
+  fordi ImageMagick setter bunn-origo i headeren men skriver radene ovenfra (bildet blir opp ned).
+- Release: legg til `## vX.Y.Z` i `CHANGELOG.md`, push taggen `vX.Y.Z`. GitHub Actions kjører
+  BigWigs-packageren, som gjenkjenner `16001` som Forever. CurseForge-opplasting krever
+  `## X-Curse-Project-ID` i TOC-en og secret `CF_API_KEY`.

@@ -1,69 +1,71 @@
 # Gemcutter
 
-Et avslappet match-3-spill for World of Warcraft: Forever, laget for lange flight paths. Du åpner
-brettet fra minimap-knappen, bytter steiner til du lander og lukker det igjen. Brettet lagres, så du
-fortsetter der du slapp på neste flytur. Alt du spiller gir XP til en kontobred progresjon.
+A relaxed match-3 game for World of Warcraft: Forever. Click the minimap button, swap gems for a
+while, close it again. It was made for long flight paths, but it works anywhere outside combat.
 
-## Installering
+The board never ends and is saved between sessions, so you pick up where you left off. Everything
+you clear earns XP toward an account-wide level.
 
-Addonet ligger i `Gemcutter/`. Kopier eller symlink mappen til Forever-installasjonen:
+## Playing
 
-```sh
-ln -s "$PWD/Gemcutter" ".../World of Warcraft/_forever_/Interface/AddOns/Gemcutter"
-```
+- Open and close the board with the minimap button, the addon menu next to the minimap, or
+  `/gemcutter` (short: `/gc`).
+- Drag a gem onto a neighbour, or click two neighbouring gems, to swap them.
+- Three or more of the same colour in a row or column are cleared. New gems fall in, and every
+  cascade raises the multiplier.
+- If you stop for eight seconds, a possible move starts to pulse.
+- Escape closes the window. It also closes when you enter combat or get a ready check.
 
-Start spillet på nytt eller skriv `/reload` hvis du allerede er inne.
+Special gems:
 
-## Bruk
+- Four in a row makes a line gem. When it clears, it takes the whole row or column with it.
+- An L, T or cross shape makes a volatile gem that clears the 3x3 square around it.
+- Five in a row makes a prism. Swap it with any gem to clear every gem of that colour. Two prisms
+  clear the board.
 
-- Klikk på minimap-knappen (blå safir) eller i addon-menyen ved minimap for å åpne og lukke brettet.
-- Bytt to steiner ved å dra en stein mot naboen, eller klikke på begge.
-- Esc lukker vinduet. Vinduet lukkes også når du går i kamp eller får en ready check.
-- Etter åtte sekunder uten trekk pulserer et mulig trekk.
+When no moves are left, the board reshuffles. **New board** starts over and only resets the board
+score.
 
-Kommandoer: `/gemcutter` (eller `/gc`) åpner og lukker brettet.
+## Progression
 
-| Kommando | Virkning |
+Progress belongs to your account, not to one character. Every move earns XP based on its score.
+There are 60 levels with a new rank title every ten, from Novice Gemcutter to Grand Master
+Gemcutter, plus 18 achievements with XP rewards. The **Progress** panel shows your stats: best
+move, longest chain, gems cleared and how many flights you have played on. Level 10 takes about
+half an hour; level 60 takes many evenings.
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| `/gemcutter minimap` | skjuler eller viser minimap-knappen |
-| `/gemcutter scale 0.5-2` | endrer størrelsen på vinduet |
-| `/gemcutter sound` | slår lyd av eller på |
-| `/gemcutter reset` | sletter all progresjon (spør først) |
+| `/gemcutter` | open or close the board |
+| `/gemcutter minimap` | hide or show the minimap button |
+| `/gemcutter scale 0.5-2` | change the window size |
+| `/gemcutter sound` | turn sound on or off |
+| `/gemcutter reset` | erase all progress (asks first) |
 
-## Regler
+## Installing
 
-Tre eller flere like på rad eller i kolonne forsvinner. Nye steiner faller ned, og hver kaskade gir
-høyere multiplikator. Spesialsteiner:
+Install it with CurseForge or WowUp, or download the zip from the GitHub releases and unpack it into
+`World of Warcraft/_forever_/Interface/AddOns/`.
 
-- Fire på rad lager en ladet stein som tømmer hele raden eller kolonnen når den forsvinner.
-- L-, T- eller kryssform lager en ustabil stein som sprenger 3x3 rundt seg.
-- Fem på rad lager et prisme. Bytt det med en stein, så forsvinner alle steiner med den fargen.
-  To prismer tømmer hele brettet.
+## Development
 
-Spillet tar aldri slutt. Er det ingen trekk igjen, stokkes brettet. «New board» starter et nytt brett
-og nullstiller bare brettpoengene.
-
-## Progresjon
-
-Progresjonen gjelder hele kontoen, ikke én karakter. Hvert trekk gir XP etter poengsum. Nivå 1–60
-gir en ny rangtittel hvert tiende nivå, fra Novice Gemcutter til Grand Master Gemcutter. 18
-achievements gir ekstra XP, og fremdriftspanelet viser statistikk som beste trekk, lengste kjede og
-antall flyturer du har spilt på. En simulering anslår nivå 10 etter rundt en halvtime og nivå 60
-etter rundt 16 timers spill.
-
-## Utvikling
-
-Spillogikken (`Core.lua`, `Progression.lua`) er ren Lua 5.1 uten WoW-API og testes direkte.
-`tests/ui_smoke.lua` laster hele addonet mot en streng mock av WoW-API-et og spiller 400 trekk med
-musehendelser og animasjoner.
+The game rules (`Core.lua`) and progression (`Progression.lua`) are plain Lua 5.1 with no WoW API,
+so they run outside the game. `tests/ui_smoke.lua` loads the whole addon against a strict mock of
+the WoW API and plays 400 moves with mouse input and animations.
 
 ```sh
+scripts/fetch-libs.sh     # LibStub, CallbackHandler, LibDataBroker and LibDBIcon into Gemcutter/Libs
 luajit tests/run.lua
 luajit tests/ui_smoke.lua
 ```
 
-Ikke laget ennå: Blitz-modus med tidsfrist, daglig utfordring med samme brett for alle, alternative
-steinsett, valgfri automatisk åpning ved flight path og poengtavle for venner og guild.
+For local play, symlink `Gemcutter/` into the Forever `Interface/AddOns` folder after fetching the
+libraries.
 
-Alle steiner er spillets egne item-ikoner, og lydene er spillets egne SOUNDKIT-lyder. Addonet har
-ingen egen grafikk eller lyd.
+Releases are built by the BigWigs packager on GitHub Actions when a `v*` tag is pushed. Add a
+section for the version to `CHANGELOG.md` first.
+
+The gems on the board are the game's own item icons and the sounds are the game's own. The addon
+icon is original art (`assets/icon.svg`). Licensed under MIT.

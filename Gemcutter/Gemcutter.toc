@@ -1,13 +1,20 @@
 ## Interface: 16001
 ## Title: Gemcutter
-## Notes: A relaxed match-3 board for long flight paths, with account-wide levels and achievements.
+## Notes: A relaxed match-3 board behind a minimap button, made for long flight paths. Account-wide levels and achievements.
 ## Author: Håkon
-## Version: 1.0.0
-## IconTexture: Interface\Icons\INV_Misc_Gem_Sapphire_02
+## Version: @project-version@
+## IconTexture: Interface\AddOns\Gemcutter\Media\Icon
 ## SavedVariables: GemcutterDB
 ## AddonCompartmentFunc: Gemcutter_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: Gemcutter_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: Gemcutter_OnAddonCompartmentLeave
+## X-License: MIT
+## X-Website: https://github.com/Medpus/gemcutter
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\lib.xml
 
 Core.lua
 Progression.lua

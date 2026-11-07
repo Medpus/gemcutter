@@ -1,0 +1,47 @@
+name: Release
+
+# Push en tagg som v1.0.0 (eller v1.1.0-beta1) for å lage en release.
+# GitHub-release lages alltid. CurseForge-opplasting skjer når .toc har
+# X-Curse-Project-ID og repoet har secret CF_API_KEY; Wago tilsvarende med
+# X-Wago-ID og WAGO_API_TOKEN. Mangler de, hoppes opplastingen over.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install LuaJIT and Subversion
+        run: sudo apt-get update && sudo apt-get install -y luajit subversion
+
+      - name: Tests
+        run: |
+          luajit tests/run.lua
+          luajit tests/ui_smoke.lua
+
+      # Packageren bruker CHANGELOG.md som release notes; kutt den ned til denne versjonen.
+      - name: Release notes
+        run: |
+          notes="$RUNNER_TEMP/notes.md"
+          awk -v v="$GITHUB_REF_NAME" '/^## / { if (found) exit; found = ($2 == v) } found' CHANGELOG.md > "$notes"
+          if [[ ! -s "$notes" ]]; then
+            echo "::error::CHANGELOG.md has no section '## $GITHUB_REF_NAME'"; exit 1
+          fi
+          mv "$notes" CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Package and release
+        uses: BigWigsMods/packager@v2
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

@@ -12,8 +12,9 @@ local function InitDB()
     if type(db.profile) ~= "table" then db.profile = Progression.NewProfile() end
     db.profile = Progression.Upgrade(db.profile)
 
+    -- LibDBIcon lagrer selv posisjonen i minimapPos
     if type(db.minimap) ~= "table" then db.minimap = {} end
-    if type(db.minimap.angle) ~= "number" then db.minimap.angle = 200 end
+    if type(db.minimap.minimapPos) ~= "number" then db.minimap.minimapPos = 200 end
     db.minimap.hide = db.minimap.hide == true
 
     if type(db.window) ~= "table" then db.window = {} end

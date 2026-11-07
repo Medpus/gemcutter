@@ -18,7 +18,10 @@ end
 local function tocFiles()
     local files = {}
     for line in io.lines(ADDON .. "/" .. ADDON .. ".toc") do
-        if line:match("%.lua%s*$") then files[#files + 1] = line:match("^%s*(.-)%s*$") end
+        -- Bibliotekene erstattes av tests/fake_libs.lua
+        if line:match("%.lua%s*$") and not line:match("^%s*Libs[\\/]") then
+            files[#files + 1] = line:match("^%s*(.-)%s*$")
+        end
     end
     return files
 end
@@ -29,6 +32,8 @@ local function bootstrap(savedDB)
     for k in pairs(require("tests.wow_mock").allowedGlobals) do rawset(_G, k, nil) end
     local M = dofile("tests/wow_mock.lua")
     M.Install()
+    M.fakeLibs = dofile("tests/fake_libs.lua")
+    rawset(_G, "LibStub", M.fakeLibs.LibStub)
     rawset(_G, "GemcutterDB", savedDB)
     M.Lockdown()
     local ns = {}
@@ -242,22 +247,24 @@ check(settle(M, board), "no animation left after board replaced")
 ok, err = boardMatchesState(board, ns)
 check(ok, "board correct after replacing mid-animation: " .. tostring(err))
 
--- Minimapknapp
-local mm = GemcutterMinimapButton
-check(mm ~= nil and mm._shown, "minimap button shown")
-mm._scripts.OnClick(mm, "LeftButton")
+-- Minimapknapp (LibDataBroker + LibDBIcon)
+local launcher = M.fakeLibs.ldb.objects[ADDON]
+local mm = M.fakeLibs.icon.buttons[ADDON]
+check(launcher ~= nil and launcher.type == "launcher", "LDB launcher registered")
+check(mm ~= nil and mm.obj == launcher and mm.db == ns.db.minimap and mm.shown, "LibDBIcon button registered with saved db")
+check(launcher.icon == "Interface\\AddOns\\Gemcutter\\Media\\Icon", "launcher uses the addon icon")
+check(type(ns.db.minimap.minimapPos) == "number", "minimap position default stored for LibDBIcon")
+launcher.OnClick(nil, "LeftButton")
 check(not frame._shown, "minimap click closes the board")
-mm._scripts.OnClick(mm, "LeftButton")
+launcher.OnClick(nil, "LeftButton")
 check(frame._shown, "minimap click opens the board")
-M.cursorX, M.cursorY = 1000, 900
-mm._scripts.OnDragStart(mm)
-M.Tick(0.05)
-mm._scripts.OnDragStop(mm)
-check(math.abs(ns.db.minimap.angle - 90) < 0.01, "dragging stores minimap angle (" .. ns.db.minimap.angle .. ")")
+local tip = M.fakeLibs.NewTooltip()
+launcher.OnTooltipShow(tip)
+check(tip.lines[1] == "Gemcutter" and tostring(tip.lines[2]):find("^Level %d"), "tooltip shows name and level")
 SlashCmdList.GEMCUTTER("minimap")
-check(not mm._shown and ns.db.minimap.hide, "slash command hides minimap button")
+check(not mm.shown and ns.db.minimap.hide, "slash command hides minimap button")
 SlashCmdList.GEMCUTTER("minimap")
-check(mm._shown, "slash command shows minimap button again")
+check(mm.shown and not ns.db.minimap.hide, "slash command shows minimap button again")
 
 -- Flytte vinduet lagrer posisjonen i DB
 frame._scripts.OnDragStart(frame, "LeftButton")
@@ -285,7 +292,7 @@ SlashCmdList.GEMCUTTER("help")
 -- Addon-kompartement
 Gemcutter_OnAddonCompartmentClick()
 check(not frame._shown, "compartment click toggles the board")
-Gemcutter_OnAddonCompartmentEnter(ADDON, mm)
+Gemcutter_OnAddonCompartmentEnter(ADDON, UIParent)
 Gemcutter_OnAddonCompartmentLeave()
 
 -- Lagring ved utlogging
