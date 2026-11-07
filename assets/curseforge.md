@@ -1,6 +1,6 @@
 A relaxed match-3 board behind your minimap button. Open it on a long flight path, swap gems until you land, close it again.
 
-![The board](SCREENSHOT_BOARD)
+![The board](https://raw.githubusercontent.com/Medpus/gemcutter/master/assets/screenshots/board.png)
 
 - Left-click the minimap button or type `/gemcutter` to open the board. Right-click for your progress.
 - Drag a gem onto a neighbour, or click two, to swap them. Three or more in a line are cleared, and cascades raise the multiplier.
@@ -9,7 +9,7 @@ A relaxed match-3 board behind your minimap button. Open it on a long flight pat
 - Everything you clear earns XP toward an account-wide level from 1 to 60, with rank titles and 18 achievements.
 - The window closes on its own when combat starts.
 
-![Progress and achievements](SCREENSHOT_PROGRESS)
+![Progress and achievements](https://raw.githubusercontent.com/Medpus/gemcutter/master/assets/screenshots/progress.png)
 
 Commands: `/gemcutter minimap` hides the button, `/gemcutter scale 0.5-2` resizes the window, `/gemcutter sound` toggles sound.
 

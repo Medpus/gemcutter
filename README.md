@@ -4,6 +4,8 @@ A relaxed match-3 game for World of Warcraft: Forever. You open it from the mini
 gems until you feel like stopping and close it again. It was made for long flight paths, but it
 works anywhere outside combat.
 
+![The Gemcutter board](assets/screenshots/board.png)
+
 The board never ends and is saved between sessions, so you pick up where you left off. Everything
 you clear earns XP toward an account-wide level.
 
