@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: GemFlight
+## Notes: A relaxed match-3 board for long flight paths, with account-wide levels and achievements.
+## Author: Håkon
+## Version: 1.0.0
+## IconTexture: Interface\Icons\INV_Misc_Gem_Sapphire_02
+## SavedVariables: GemFlightDB
+## AddonCompartmentFunc: GemFlight_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: GemFlight_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: GemFlight_OnAddonCompartmentLeave
+
+Core.lua
+Progression.lua
+UI.lua
+MinimapButton.lua
+Main.lua
