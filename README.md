@@ -17,7 +17,8 @@ you clear earns XP toward an account-wide level.
 - Drag a gem onto a neighbour, or click two neighbouring gems, to swap them.
 - Three or more of the same colour in a row or column are cleared. New gems fall in, and every
   cascade raises the multiplier.
-- If you stop for eight seconds, a possible move starts to pulse.
+- If you stop for eight seconds, two gems that make a match start to pulse and lean toward each
+  other. Swap them.
 - Escape closes the window. It also closes when you enter combat or get a ready check.
 
 Special gems:

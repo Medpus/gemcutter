@@ -95,9 +95,12 @@ end
 
 local function moveScore(cells, r1, c1, r2, c2)
     local a, b = cells[r1][c1], cells[r2][c2]
+    -- Prismet kan byttes med hva som helst, men et hint som peker på prismet og en tilfeldig nabo
+    -- ser ut som et trekk uten treff. Prismetrekk teller derfor lavest og vises bare når ingenting
+    -- annet finnes. Vanlige treff gir minst 3.
     if a.color == PRISM or b.color == PRISM then
-        if a.color == PRISM and b.color == PRISM then return 1000 end
-        return 500
+        if a.color == PRISM and b.color == PRISM then return 2 end
+        return 1
     end
     swapCells(cells, r1, c1, r2, c2)
     local s = lineScore(cells, r1, c1) + lineScore(cells, r2, c2)

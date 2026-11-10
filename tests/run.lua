@@ -418,6 +418,27 @@ test("FindHint is pure and valid", function()
     truthy(a)
 end)
 
+test("FindHint prefers an ordinary match over the prism", function()
+    local b = build(ov({ [2] = "11.1....", [5] = "..P....." }))
+    local r1, c1, r2, c2 = Core.FindHint(b)
+    truthy(r1)
+    truthy(not (r1 == 5 and c1 == 3) and not (r2 == 5 and c2 == 3), "hint should not use the prism")
+    eq(Core.TrySwap(b, r1, c1, r2, c2).valid, true)
+end)
+
+test("FindHint falls back to the prism when nothing else moves", function()
+    local b = Core.NewBoard(5)
+    -- Rutemønster i tre farger uten trekk, med ett prisme
+    for r = 1, 8 do
+        for c = 1, 8 do b.cells[r][c] = { id = r * 8 + c, color = (r + 2 * c) % 3 + 1 } end
+    end
+    truthy(not Core.HasMoves(b), "pattern should have no moves")
+    b.cells[4][4] = { id = 1000, color = 0, special = "prism" }
+    local r1, c1, r2, c2 = Core.FindHint(b)
+    truthy(r1)
+    truthy((r1 == 4 and c1 == 4) or (r2 == 4 and c2 == 4), "hint should use the prism")
+end)
+
 ----------------------------------------------------------------------
 -- Lang tilfeldig spilling med invarianter
 ----------------------------------------------------------------------

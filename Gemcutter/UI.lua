@@ -32,6 +32,9 @@ local GEM_COLORS = {
     { 0.35, 0.6, 1 }, { 0.75, 0.45, 1 }, { 1, 1, 1 },
 }
 local PRISM_COLOR = { 0.8, 0.9, 1 }
+local SPARK = "Interface\\CastingBar\\UI-CastingBar-Spark"
+local SPARK_RUN = CELL * 0.6
+local HINT_NUDGE = 4
 
 local SWAP_TIME = 0.16
 local SWAP_GROW = 0.1
@@ -175,7 +178,7 @@ local function CreateGemFrame()
     g.icon:SetPoint("CENTER")
     g.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
-    -- Effektlaget pulserer for spesialsteiner
+    -- Effektlaget: glød rundt alle spesialsteiner, stråle og gnister på linjesteiner
     g.fx = CreateFrame("Frame", nil, g)
     g.fx:SetAllPoints()
     g.glow = g.fx:CreateTexture(nil, "OVERLAY")
@@ -183,24 +186,53 @@ local function CreateGemFrame()
     g.glow:SetBlendMode("ADD")
     g.glow:SetSize(CELL * 1.8, CELL * 1.8)
     g.glow:SetPoint("CENTER")
-    g.lineV = g.fx:CreateTexture(nil, "OVERLAY")
-    g.lineV:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
-    g.lineV:SetBlendMode("ADD")
-    g.lineV:SetSize(14, GEM + 6)
-    g.lineV:SetPoint("CENTER")
-    g.lineH = g.fx:CreateTexture(nil, "OVERLAY")
-    g.lineH:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
-    g.lineH:SetBlendMode("ADD")
-    -- Roter gnisten 90 grader via teksturkoordinatene
-    g.lineH:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
-    g.lineH:SetSize(GEM + 6, 14)
-    g.lineH:SetPoint("CENTER")
-    g.pulse = g.fx:CreateAnimationGroup()
+    -- Bare gløden pulserer; strålen står støtt så retningen alltid kan leses
+    g.pulse = g.glow:CreateAnimationGroup()
     g.pulse:SetLooping("BOUNCE")
     local a = g.pulse:CreateAnimation("Alpha")
     a:SetFromAlpha(1)
-    a:SetToAlpha(0.35)
-    a:SetDuration(0.7)
+    a:SetToAlpha(0.5)
+    a:SetDuration(0.8)
+    a:SetSmoothing("IN_OUT")
+
+    -- Strålen stikker litt ut av ruten og har en hvit kjerne, så den synes også på lyse steiner
+    g.lineV = g.fx:CreateTexture(nil, "OVERLAY")
+    g.lineV:SetTexture(SPARK)
+    g.lineV:SetBlendMode("ADD")
+    g.lineV:SetSize(24, CELL + 12)
+    g.lineV:SetPoint("CENTER")
+    g.lineH = g.fx:CreateTexture(nil, "OVERLAY")
+    g.lineH:SetTexture(SPARK)
+    g.lineH:SetBlendMode("ADD")
+    -- Roter gnisten 90 grader via teksturkoordinatene
+    g.lineH:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
+    g.lineH:SetSize(CELL + 12, 24)
+    g.lineH:SetPoint("CENTER")
+    g.core = g.fx:CreateTexture(nil, "OVERLAY")
+    g.core:SetTexture(SPARK)
+    g.core:SetBlendMode("ADD")
+    g.core:SetPoint("CENTER")
+
+    -- To gnister løper ut fra midten langs linjen den vil tømme
+    g.sparks = {}
+    for i = 1, 2 do
+        local s = g.fx:CreateTexture(nil, "OVERLAY")
+        s:SetTexture("Interface\\Cooldown\\star4")
+        s:SetBlendMode("ADD")
+        s:SetSize(12, 12)
+        s:SetPoint("CENTER")
+        s:Hide()
+        s.anim = s:CreateAnimationGroup()
+        s.anim:SetLooping("REPEAT")
+        s.move = s.anim:CreateAnimation("Translation")
+        s.move:SetDuration(0.9)
+        s.move:SetSmoothing("OUT")
+        local fade = s.anim:CreateAnimation("Alpha")
+        fade:SetFromAlpha(1)
+        fade:SetToAlpha(0)
+        fade:SetDuration(0.9)
+        g.sparks[i] = s
+    end
 
     g.sel = g:CreateTexture(nil, "OVERLAY")
     g.sel:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
@@ -244,6 +276,12 @@ local function CreateGemFrame()
     h:SetFromAlpha(0.15)
     h:SetToAlpha(0.9)
     h:SetDuration(0.6)
+    -- Hintede steiner lener seg mot hverandre; retningen settes når hintet vises
+    g.nudge = g:CreateAnimationGroup()
+    g.nudge:SetLooping("BOUNCE")
+    g.nudgeMove = g.nudge:CreateAnimation("Translation")
+    g.nudgeMove:SetDuration(0.4)
+    g.nudgeMove:SetSmoothing("IN_OUT")
     return g
 end
 
@@ -260,13 +298,43 @@ local function ReleaseGem(g)
     g:Hide()
     g.pulse:Stop()
     g.hintPulse:Stop()
+    g.nudge:Stop()
     g.selPulse:Stop()
     g.sel:Hide()
     g.hint:Hide()
     g.hover:Hide()
     g.flash:Hide()
+    for i = 1, #g.sparks do
+        g.sparks[i].anim:Stop()
+        g.sparks[i]:Hide()
+    end
+    g.sparkKind = nil
     if hoverGem == g then hoverGem = nil end
     gemPool[#gemPool + 1] = g
+end
+
+-- Farge blandet mot hvitt (k = 0 gir fargen, 1 gir hvitt)
+local function Tint(col, k)
+    return col[1] + (1 - col[1]) * k, col[2] + (1 - col[2]) * k, col[3] + (1 - col[3]) * k
+end
+
+local function SetLineSparks(g, kind)
+    local line = kind == "lineH" or kind == "lineV"
+    -- WoW kan stoppe animasjoner når vinduet skjules, så sjekk at de faktisk går
+    if g.sparkKind == kind and (not line or g.sparks[1].anim:IsPlaying()) then return end
+    g.sparkKind = kind
+    for i = 1, #g.sparks do
+        local s = g.sparks[i]
+        s.anim:Stop()
+        if line then
+            local d = i == 1 and SPARK_RUN or -SPARK_RUN
+            if kind == "lineH" then s.move:SetOffset(d, 0) else s.move:SetOffset(0, d) end
+            s:Show()
+            s.anim:Play()
+        else
+            s:Hide()
+        end
+    end
 end
 
 local function StyleGem(g, gem)
@@ -276,14 +344,34 @@ local function StyleGem(g, gem)
     else
         g.icon:SetTexture(GEM_ICONS[gem.color] or GEM_ICONS[1])
     end
-    g.glow:SetShown(special == "volatile" or special == "prism")
+    local line = special == "lineH" or special == "lineV"
+    g.glow:SetShown(special ~= nil)
     if special == "volatile" then
         g.glow:SetVertexColor(1, 0.45, 0.1)
     elseif special == "prism" then
-        g.glow:SetVertexColor(0.8, 0.9, 1)
+        g.glow:SetVertexColor(PRISM_COLOR[1], PRISM_COLOR[2], PRISM_COLOR[3])
+    elseif line then
+        -- Linjesteinen gløder i sin egen farge
+        local col = GEM_COLORS[gem.color] or PRISM_COLOR
+        g.glow:SetVertexColor(col[1], col[2], col[3])
+        local r, gg, b = Tint(col, 0.5)
+        g.lineH:SetVertexColor(r, gg, b)
+        g.lineV:SetVertexColor(r, gg, b)
+        r, gg, b = Tint(col, 0.7)
+        g.sparks[1]:SetVertexColor(r, gg, b)
+        g.sparks[2]:SetVertexColor(r, gg, b)
+        if special == "lineH" then
+            g.core:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
+            g.core:SetSize(CELL + 4, 10)
+        else
+            g.core:SetTexCoord(0, 1, 0, 1)
+            g.core:SetSize(10, CELL + 4)
+        end
     end
     g.lineH:SetShown(special == "lineH")
     g.lineV:SetShown(special == "lineV")
+    g.core:SetShown(line)
+    SetLineSparks(g, special)
     if special then
         if not g.pulse:IsPlaying() then g.pulse:Play() end
     else
@@ -692,6 +780,7 @@ local function HideHint()
     for i = #hintFrames, 1, -1 do
         local g = hintFrames[i]
         g.hintPulse:Stop()
+        g.nudge:Stop()
         g.hint:Hide()
         hintFrames[i] = nil
     end
@@ -705,27 +794,6 @@ local function CancelHint()
     HideHint()
 end
 
-local function ShowHint()
-    hintTimer = nil
-    if busy or not frame:IsShown() or progressPanel:IsShown() then return end
-    local r1, c1, r2, c2 = Core.FindHint(ns.board)
-    if not r1 then return end
-    local cells = ns.board.cells
-    for _, rc in ipairs({ { r1, c1 }, { r2, c2 } }) do
-        local g = gemFrames[cells[rc[1]][rc[2]].id]
-        if g then
-            g.hint:Show()
-            g.hintPulse:Play()
-            hintFrames[#hintFrames + 1] = g
-        end
-    end
-end
-
-local function ScheduleHint()
-    CancelHint()
-    hintTimer = C_Timer.NewTimer(HINT_DELAY, ShowHint)
-end
-
 local function ClearSelection()
     if selR then
         local g = gemFrames[ns.board.cells[selR][selC].id]
@@ -736,6 +804,34 @@ local function ClearSelection()
         end
     end
     selR, selC = nil, nil
+end
+
+local function ShowHint()
+    hintTimer = nil
+    if busy or downR or not frame:IsShown() or progressPanel:IsShown() then return end
+    local r1, c1, r2, c2 = Core.FindHint(ns.board)
+    if not r1 then return end
+    local cells = ns.board.cells
+    local ga, gb = gemFrames[cells[r1][c1].id], gemFrames[cells[r2][c2].id]
+    if not ga or not gb then return end
+    -- En stående markering gjør at et klikk på hintet bytter med den markerte steinen i stedet
+    ClearSelection()
+    -- WoW har y oppover, brettet har rad nedover
+    local dx, dy = (c2 - c1) * HINT_NUDGE, (r1 - r2) * HINT_NUDGE
+    ga.nudgeMove:SetOffset(dx, dy)
+    gb.nudgeMove:SetOffset(-dx, -dy)
+    hintFrames[1], hintFrames[2] = ga, gb
+    for i = 1, 2 do
+        local g = hintFrames[i]
+        g.hint:Show()
+        g.hintPulse:Play()
+        g.nudge:Play()
+    end
+end
+
+local function ScheduleHint()
+    CancelHint()
+    hintTimer = C_Timer.NewTimer(HINT_DELAY, ShowHint)
 end
 
 local function Select(r, c)
@@ -1083,7 +1179,13 @@ local function UpdateDrag()
         dragGb = InBoard(nr, nc) and gemFrames[ns.board.cells[nr][nc].id] or nil
     end
     dragAmt = amt
-    if dragGa and dragGb then PlaceSwapped(dragGa, dragGb, downR, downC, nr, nc, amt) end
+    if dragGa and dragGb then
+        PlaceSwapped(dragGa, dragGb, downR, downC, nr, nc, amt)
+    elseif dragGa then
+        -- Draget peker ut av brettet: steinen går tilbake til ruten sin
+        PlaceGem(dragGa, downR, downC)
+        dragGa.icon:SetSize(GEM, GEM)
+    end
 end
 
 local function EndPress()

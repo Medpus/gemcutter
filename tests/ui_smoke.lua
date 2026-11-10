@@ -5,6 +5,8 @@
 local ADDON = "Gemcutter"
 local passed, failed = 0, 0
 local require_frames
+-- Ikonene i samme rekkefølge som Core-fargene 1..7
+local GEM_ICON_NAMES = { "Ruby_03", "Opal_01", "Topaz_02", "Emerald_01", "Sapphire_02", "Amethyst_01", "Diamond_02" }
 
 local function check(cond, msg)
     if cond then
@@ -88,13 +90,53 @@ local function boardMatchesState(board, ns)
             local tex = f.icon._texture
             if gem.special == "prism" then
                 if not tex:find("Prismatic") then return false, "prism shows wrong icon" end
-            elseif tex:find("Prismatic") then
-                return false, "plain gem shows prism icon"
+            elseif not tex:find(GEM_ICON_NAMES[gem.color], 1, true) then
+                return false, "wrong icon for colour " .. gem.color .. " at " .. r .. "," .. c
             end
+            local line = gem.special == "lineH" or gem.special == "lineV"
             if f.lineH._shown ~= (gem.special == "lineH") then return false, "lineH overlay mismatch" end
             if f.lineV._shown ~= (gem.special == "lineV") then return false, "lineV overlay mismatch" end
+            if f.core._shown ~= line then return false, "line core mismatch" end
+            if f.glow._shown ~= (gem.special ~= nil) then return false, "glow mismatch at " .. r .. "," .. c end
+            if f.sparks[1]._shown ~= line or (line and not f.sparks[1].anim:IsPlaying()) then
+                return false, "line sparks mismatch at " .. r .. "," .. c
+            end
+            if (gem.special ~= nil) ~= (f.pulse:IsPlaying() == true) then return false, "glow pulse mismatch" end
         end
     end
+    return true
+end
+
+-- Rammene som viser hint akkurat nå, som { r, c }
+local function hintedCells(board)
+    local list = {}
+    for _, f in ipairs(require_frames) do
+        if f._parent == board and f._shown and f.hint and f.hint._shown then
+            local _, _, _, x, y = f:GetPoint()
+            list[#list + 1] = { math.floor(-y / 36 + 0.5) + 1, math.floor(x / 36 + 0.5) + 1, f = f }
+        end
+    end
+    return list
+end
+
+local function anySelected(board)
+    for _, f in ipairs(require_frames) do
+        if f._parent == board and f._shown and f.sel and f.sel._shown then return true end
+    end
+    return false
+end
+
+-- Et vist hint skal være to naboer som faktisk gir et gyldig trekk, uten stående markering
+local function hintIsValid(board, ns)
+    local h = hintedCells(board)
+    if #h == 0 then return true end
+    if #h ~= 2 then return false, "expected 2 hinted gems, got " .. #h end
+    local a, b = h[1], h[2]
+    if not ns.Core.AreAdjacent(a[1], a[2], b[1], b[2]) then return false, "hinted gems are not neighbours" end
+    local copy = ns.Core.Deserialize(ns.Core.Serialize(ns.board))
+    if not ns.Core.TrySwap(copy, a[1], a[2], b[1], b[2]).valid then return false, "hinted swap is invalid" end
+    if anySelected(board) then return false, "a selection is still showing next to the hint" end
+    if not (a.f.nudge:IsPlaying() and b.f.nudge:IsPlaying()) then return false, "hinted gems do not nudge" end
     return true
 end
 
@@ -132,7 +174,7 @@ local ok, err = boardMatchesState(board, ns)
 check(ok, "initial board drawn: " .. tostring(err))
 
 local Core = ns.Core
-local moves, invalids, combatHides = 0, 0, 0
+local moves, invalids, combatHides, hintsShown = 0, 0, 0, 0
 local seed = 7
 local function rand(n)
     seed = (seed * 16807) % 2147483647
@@ -181,7 +223,18 @@ for i = 1, 400 do
     end
     check(settle(M, board), "animation finishes (move " .. i .. ")")
     M.FinishAnimations()
-    if i % 5 == 0 then M.RunTimers() end
+    if i % 5 == 0 then
+        if i % 10 == 0 then
+            -- la en markering stå når hintet dukker opp
+            local sr, sc = rand(8), rand(8)
+            mouse(M, board, "OnMouseDown", sr, sc)
+            mouse(M, board, "OnMouseUp", sr, sc)
+        end
+        M.RunTimers()
+        local hok, herr = hintIsValid(board, ns)
+        check(hok, "hint after move " .. i .. ": " .. tostring(herr))
+        if #hintedCells(board) > 0 then hintsShown = hintsShown + 1 end
+    end
     if ns.board.score > scoreBefore then moves = moves + 1 end
     ok, err = boardMatchesState(board, ns)
     if not ok then
@@ -189,6 +242,32 @@ for i = 1, 400 do
         break
     end
 end
+check(hintsShown > 40, "hints shown during play (" .. hintsShown .. ")")
+
+-- Markert stein + hint: to klikk på de hintede steinene skal gi hint-trekket,
+-- ikke et bytte mellom den markerte steinen og den første hintede
+do
+    settle(M, board)
+    local movesBefore = ns.board.moves
+    mouse(M, board, "OnMouseDown", 4, 4)
+    mouse(M, board, "OnMouseUp", 4, 4)
+    check(anySelected(board), "click selects a gem")
+    M.RunTimers()
+    local h = hintedCells(board)
+    check(#h == 2, "idle hint shows two gems")
+    check(not anySelected(board), "hint clears the standing selection")
+    if #h == 2 then
+        mouse(M, board, "OnMouseDown", h[1][1], h[1][2])
+        mouse(M, board, "OnMouseUp", h[1][1], h[1][2])
+        mouse(M, board, "OnMouseDown", h[2][1], h[2][2])
+        mouse(M, board, "OnMouseUp", h[2][1], h[2][2])
+        check(settle(M, board), "hinted move finishes")
+        M.FinishAnimations()
+        check(ns.board.moves == movesBefore + 1, "clicking the two hinted gems makes the move")
+    end
+    check(#hintedCells(board) == 0, "hint is gone after the move")
+end
+
 -- Dra som følger musen: gem + nabo flytter seg med pekeren, maks én rute
 do
     local function cursorAt(lx, ly)
@@ -265,6 +344,29 @@ do
     M.FinishAnimations()
     ok, err = boardMatchesState(board, ns)
     check(ok, "board correct after drag commit: " .. tostring(err))
+
+    -- Snur draget mot kanten: steinen skal tilbake i ruten sin, ikke bli stående halvveis
+    local er, ec = 3, 8
+    local ex, ey = (ec - 0.5) * 36, (er - 0.5) * 36
+    local ge = gemAt(er, ec)
+    local movesEdge = ns.board.moves
+    M.mouseDown = true
+    cursorAt(ex, ey)
+    board._scripts.OnMouseDown(board, "LeftButton")
+    cursorAt(ex - 12, ey)
+    M.Tick(0.016)
+    ox, oy = offsetOf(ge, er, ec)
+    check(math.abs(ox + 12) < 0.01 and oy == 0, "edge gem follows the cursor inward")
+    cursorAt(ex + 20, ey)
+    M.Tick(0.016)
+    ox, oy = offsetOf(ge, er, ec)
+    check(ox == 0 and oy == 0, "dragging toward the edge puts the gem back in its cell")
+    M.mouseDown = false
+    M.Tick(0.016)
+    check(settle(M, board), "edge drag finishes")
+    check(ns.board.moves == movesEdge, "edge drag makes no move")
+    ok, err = boardMatchesState(board, ns)
+    check(ok, "board intact after edge drag: " .. tostring(err))
 end
 
 check(moves > 300, "most moves scored (" .. moves .. ")")
