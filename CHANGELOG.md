@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.0.1
 
 - Line gems are easier to spot. They glow in their own colour, carry a brighter beam that reaches
   past the gem, and send sparks along the row or column they will clear.
