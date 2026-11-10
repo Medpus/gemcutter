@@ -37,7 +37,7 @@ Progress belongs to your account, not to one character. Every move earns XP base
 There are 60 levels with a new rank title every ten, from Novice Gemcutter to Grand Master
 Gemcutter, plus 18 achievements with XP rewards. The Progress panel shows your stats: best move,
 longest chain, gems cleared and how many flights you have played on. In a simulated casual pace of
-ten moves a minute, level 10 took about half an hour and level 60 about 16 hours.
+ten moves a minute, level 10 took about half an hour and level 60 about 17 hours.
 
 ## Commands
 

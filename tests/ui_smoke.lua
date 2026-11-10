@@ -259,6 +259,7 @@ do
     if #h == 2 then
         mouse(M, board, "OnMouseDown", h[1][1], h[1][2])
         mouse(M, board, "OnMouseUp", h[1][1], h[1][2])
+        check(#hintedCells(board) == 2, "first click on a hinted gem keeps the hint on its partner")
         mouse(M, board, "OnMouseDown", h[2][1], h[2][2])
         mouse(M, board, "OnMouseUp", h[2][1], h[2][2])
         check(settle(M, board), "hinted move finishes")

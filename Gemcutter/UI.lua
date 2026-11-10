@@ -1214,8 +1214,11 @@ local function EndPress()
             return
         end
     end
+    -- Klikk på en hintet stein lar hintet stå, så partneren fortsatt vises
+    local g = gemFrames[ns.board.cells[fromR][fromC].id]
+    local hinted = g and (hintFrames[1] == g or hintFrames[2] == g)
     Select(fromR, fromC)
-    ScheduleHint()
+    if not hinted then ScheduleHint() end
 end
 
 function TrackerOnUpdate()
@@ -1382,7 +1385,11 @@ local function SetProgressShown(show)
         board:GetParent():Show()
         overlay:Show()
         hud.progressButton:SetText("Progress")
-        if not busy then ScheduleHint() end
+        if not busy then
+            -- Starter animasjonene på nytt hvis klienten stoppet dem mens brettet var skjult
+            SyncBoard()
+            ScheduleHint()
+        end
     end
 end
 
